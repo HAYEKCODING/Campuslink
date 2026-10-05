@@ -1,0 +1,45 @@
+spring:
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+
+  datasource:
+    # DB_URL doit inclure ?sslmode=require (obligatoire côté Neon), ex :
+    # jdbc:postgresql://<host>.neon.tech/<db>?sslmode=require
+    hikari:
+      maximum-pool-size: ${DB_POOL_MAX:5}
+      minimum-idle: ${DB_POOL_MIN:1}
+      connection-timeout: 20000
+      idle-timeout: 300000
+      max-lifetime: 1700000
+
+  mail:
+    properties:
+      mail:
+        smtp:
+          connectiontimeout: 8000
+          timeout: 8000
+          writetimeout: 8000
+
+# Aucune valeur par défaut ici (contrairement à application.yml) : le démarrage
+# doit échouer si JWT_SECRET n'est pas fourni en production, plutôt que de
+# retomber silencieusement sur le secret de développement (public, dans le repo).
+application:
+  jwt:
+    secret: ${JWT_SECRET}
+
+# Render est derrière un proxy HTTPS : nécessaire pour que Spring détecte
+# correctement le schéma (https) et l'hôte d'origine des requêtes.
+server:
+  forward-headers-strategy: framework
+  compression:
+    enabled: true
+
+logging:
+  level:
+    com.campuslink: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.security: WARN
+

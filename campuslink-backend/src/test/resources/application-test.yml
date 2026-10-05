@@ -1,0 +1,52 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:campuslink_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    username: sa
+    password: ""
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  mail:
+    host: localhost
+    port: 3025
+    username: test
+    password: test
+
+application:
+  otp:
+    length: 6
+    expiration-minutes: 10
+    resend-cooldown-seconds: 60
+    max-attempts: 5
+    cleanup-cron: "0 */15 * * * *"
+
+  password-reset:
+    token-expiration-minutes: 30
+    resend-cooldown-seconds: 60
+    reset-url: "http://localhost:3000/reset-password"
+    cleanup-cron: "0 */15 * * * *"
+
+  jwt:
+    secret: testSecretKeyForJUnitTestsOnlyMustBeAtLeast256BitsLongForHS256
+    access-token-expiration-ms: 900000
+    refresh-token-expiration-ms: 604800000
+    issuer: campuslink-backend-test
+
+  cloudinary:
+    cloud-name: test
+    api-key: test
+    api-secret: test
+
+  media:
+    folder: campuslink-test
+    max-file-size-bytes: 5242880
+    allowed-content-types: image/jpeg,image/png,image/webp
+    quality: "auto:good"
+    max-dimension: 1080

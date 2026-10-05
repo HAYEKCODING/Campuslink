@@ -1,0 +1,19 @@
+spring:
+  jpa:
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+
+logging:
+  level:
+    com.campuslink: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+
+# Pas de credentials SMTP en développement : l'indicateur "mail" marquerait
+# l'application DOWN alors qu'elle fonctionne (healthcheck Docker/Render).
+# Le réactiver avec MAIL_HEALTH_ENABLED=true si un vrai SMTP est configuré.
+management:
+  health:
+    mail:
+      enabled: false
