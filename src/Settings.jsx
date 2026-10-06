@@ -13,7 +13,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Layout from "./Layout";
-import { logout } from "./services/authService";
+import { logoutRemote } from "./services/authService";
 
 /**
  * CampusLink — Paramètres
@@ -46,9 +46,9 @@ function SettingsRow({ label, icon: Icon }) {
 export default function Settings() {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    // Nettoie les tokens (access + refresh) puis renvoie vers la connexion.
-    logout();
+  const handleLogout = async () => {
+    // Révoque le refresh token côté serveur, nettoie les tokens locaux, puis redirige.
+    await logoutRemote();
     navigate("/connexion", { replace: true });
   };
 

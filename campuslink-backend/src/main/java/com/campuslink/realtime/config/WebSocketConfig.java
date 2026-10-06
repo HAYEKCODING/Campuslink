@@ -2,6 +2,7 @@ package com.campuslink.realtime.config;
 
 import com.campuslink.realtime.security.StompAuthChannelInterceptor;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
@@ -32,15 +33,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final StompAuthChannelInterceptor stompAuthChannelInterceptor;
 
+    // Mêmes origines que la config CORS REST (application.cors.allowed-origins).
+    @Value("${application.cors.allowed-origins}")
+    private String[] allowedOrigins;
+
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*") // A restreindre au(x) domaine(s) du frontend en production
+                .setAllowedOrigins(allowedOrigins)
                 .withSockJS();
 
         // Endpoint natif (sans SockJS) pour les clients qui supportent le WebSocket pur
         registry.addEndpoint("/ws")
-                .setAllowedOriginPatterns("*");
+                .setAllowedOrigins(allowedOrigins);
     }
 
     @Override

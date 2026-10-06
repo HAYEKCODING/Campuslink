@@ -35,6 +35,19 @@ export function logout() {
   setAuthTokens({});
 }
 
+// Déconnexion volontaire : révoque aussi le refresh token côté serveur
+// (POST /auth/logout), puis nettoie le stockage local quoi qu'il arrive.
+export async function logoutRemote() {
+  const refreshToken = localStorage.getItem("campuslink_refresh_token");
+  try {
+    if (refreshToken) await api.post("/auth/logout", { refreshToken });
+  } catch {
+    // best effort : on se déconnecte localement même si le serveur est injoignable
+  } finally {
+    logout();
+  }
+}
+
 export function requestPasswordReset(email) {
   return api.post("/auth/forgot-password", { email });
 }
