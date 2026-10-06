@@ -90,9 +90,12 @@ async function tryRefreshToken() {
 }
 
 async function request(path, { method = "GET", body, headers = {}, skipAuthRetry = false, ...rest } = {}) {
+  // Les routes /auth/* (login, register, reset...) renvoient un 401 métier
+  // ("Identifiants invalides.") : ce n'est pas une session expirée.
+  const isAuthRoute = path.startsWith("/auth/");
   let response = await fetch(`${API_BASE_URL}${path}`, { ...buildFetchOptions(method, body, headers), ...rest });
 
-  if (response.status === 401 && !skipAuthRetry && getRefreshToken()) {
+  if (response.status === 401 && !skipAuthRetry && !isAuthRoute && getRefreshToken()) {
     refreshInFlight = refreshInFlight || tryRefreshToken().finally(() => {
       refreshInFlight = null;
     });
@@ -102,7 +105,7 @@ async function request(path, { method = "GET", body, headers = {}, skipAuthRetry
     }
   }
 
-  if (response.status === 401) {
+  if (response.status === 401 && !isAuthRoute) {
     clearAuth();
     const error = new Error("Session expirée, veuillez vous reconnecter.");
     error.status = 401;

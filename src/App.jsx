@@ -70,9 +70,9 @@ export default function App() {
         <Route path="/connexion" element={<CampusLinkLogin />} />
 
         {/* Onboarding */}
-        <Route path="/onboarding/1" element={<OnboardingStep1 />} />
-        <Route path="/onboarding/2" element={<OnboardingStep2 />} />
-        <Route path="/onboarding/3" element={<OnboardingStep3 />} />
+        <Route path="/onboarding/1" element={<RequireAuth><OnboardingStep1 /></RequireAuth>} />
+        <Route path="/onboarding/2" element={<RequireAuth><OnboardingStep2 /></RequireAuth>} />
+        <Route path="/onboarding/3" element={<RequireAuth><OnboardingStep3 /></RequireAuth>} />
 
         {/* App connectée (protégée par JWT) */}
         <Route path="/app" element={<RequireAuth><DiscoveryFeed /></RequireAuth>} />
