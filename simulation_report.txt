@@ -1,0 +1,127 @@
+Simulation API CampusLink — 2026-10-09 23:57:36
+Cible : http://localhost:8080/api  (proxy : http://localhost:5173/api)
+Durée : 10.0s
+Résultat : 122/122 vérifications réussies, 0 échec(s)
+
+[OK  ] public       GET /stats/public                                          attendu=200 obtenu=200  | Opération réalisée avec succès.
+[OK  ] public       GET /testimonials                                          attendu=200 obtenu=200
+[OK  ] public       GET /reference/universities                                attendu=200 obtenu=200
+[OK  ] public       GET /reference/faculties                                   attendu=200 obtenu=200
+[OK  ] public       GET /reference/neighborhoods                               attendu=200 obtenu=200
+[OK  ] public       GET /reference/interests                                   attendu=200 obtenu=200
+[OK  ] public       GET /reference/type inconnu -> refusé                      attendu={400,404,422} obtenu=400
+[OK  ] public       POST /contact valide                                       attendu={200,201} obtenu=201  | Message envoyé, nous vous répondrons au plus vite.
+[OK  ] public       POST /contact invalide -> 400                              attendu=400 obtenu=400
+[OK  ] public       Route inconnue sans token (Security d'abord)               attendu={401,404} obtenu=401
+[OK  ] public       Proxy Vite /api fonctionne                                 attendu=200 obtenu=200
+[OK  ] acces        GET /profiles/me sans token -> 401                         attendu=401 obtenu=401
+[OK  ] acces        POST /likes sans token -> 401                              attendu=401 obtenu=401
+[OK  ] acces        GET /admin/users sans token                                attendu={401,403} obtenu=401
+[OK  ] auth         POST /auth/register (A)                                    attendu=201 obtenu=201  | Compte créé avec succès. Vous pouvez maintenant vous connecter.
+[OK  ] auth         register doublon -> conflit                                attendu={400,409} obtenu=409
+[OK  ] auth         register mot de passe faible -> 400                        attendu=400 obtenu=400
+[OK  ] otp          POST /otp/send (cooldown accepté)                          attendu={200,429} obtenu=200  | Si un compte existe pour cet email, un code a été envoyé.
+[OK  ] otp          code OTP en base après /otp/send                           attendu=True obtenu=True
+[OK  ] otp          POST /otp/verify code faux -> 400                          attendu=400 obtenu=400
+[OK  ] otp          POST /otp/verify code correct                              attendu=200 obtenu=200  | Code vérifié avec succès.
+[OK  ] otp          POST /otp/resend (cooldown accepté)                        attendu={200,429} obtenu=429
+[OK  ] auth         login mauvais mot de passe -> 401                          attendu=401 obtenu=401
+[OK  ] auth         login A -> 200 + tokens                                    attendu=True obtenu=True
+[OK  ] auth         POST /auth/refresh-token                                   attendu=200 obtenu=200  | Token rafraîchi avec succès.
+[OK  ] auth         Route inconnue authentifiée -> 404                         attendu=404 obtenu=404
+[OK  ] reset        forgot-password email inconnu -> 200 (non fuite)           attendu=200 obtenu=200
+[OK  ] reset        forgot-password A -> 200 (log-only, pas de 503)            attendu=200 obtenu=200  | Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.
+[OK  ] reset        lien /reset-password journalisé avec token                 attendu=True obtenu=True
+[OK  ] reset        forgot-password relancé trop tôt -> 429 (cooldown)         attendu=429 obtenu=429  | Veuillez patienter 58 seconde(s) avant de redemander un lien de réinitialisation.
+[OK  ] reset        reset-password jeton invalide -> 400                       attendu=400 obtenu=400
+[OK  ] reset        reset-password mot de passe faible -> 400                  attendu=400 obtenu=400
+[OK  ] reset        reset-password valide -> 200                               attendu=200 obtenu=200  | Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.
+[OK  ] reset        ancien mot de passe révoqué -> 401                         attendu=401 obtenu=401
+[OK  ] reset        login avec le nouveau mot de passe                         attendu=200 obtenu=200
+[OK  ] profils      PUT /profiles/me (création par mise à jour)                attendu=200 obtenu=200  | Profil mis à jour avec succès.
+[OK  ] profils      POST /profiles/me alors qu'il existe -> 409                attendu=409 obtenu=409
+[OK  ] profils      GET /profiles/me                                           attendu=200 obtenu=200
+[OK  ] profils      profil persisté (bio + intérêts)                           attendu=True obtenu=True
+[OK  ] profils      legacyId exposé pour le module temps réel                  attendu=True obtenu=True
+[OK  ] profils      GET /profiles/search                                       attendu=200 obtenu=200
+[OK  ] profils      exclusion de soi (A absent de son feed)                    attendu=True obtenu=True  | legacyId=28 présent dans [2, 19, 5, 6, 8, 7, 16, 15]
+[OK  ] profils      recherche filtrée (genre + âge)                            attendu=200 obtenu=200
+[OK  ] profils      recherche vide (âge impossible)                            attendu=200 obtenu=200
+[OK  ] profils      GET /profiles/{uuid inconnu}/public -> 404                 attendu=404 obtenu=404
+[OK  ] medias       POST /media/upload (PNG valide) -> 201                     attendu=201 obtenu=201  | Fichier uploadé avec succès.
+[OK  ] medias       fichier uploadé servi (GET url)                            attendu={200,304} obtenu=200
+[OK  ] medias       upload type MIME invalide -> refus                         attendu={400,415,422} obtenu=400
+[OK  ] medias       upload sans token -> 401                                   attendu=401 obtenu=401
+[OK  ] medias       PUT /media/replace                                         attendu=200 obtenu=200  | Fichier remplacé avec succès.
+[OK  ] medias       DELETE /media                                              attendu={200,204} obtenu=200
+[OK  ] medias       DELETE /media idempotent (2e fois)                         attendu={200,204} obtenu=200
+[OK  ] likes        register B                                                 attendu=201 obtenu=201
+[OK  ] likes        login B                                                    attendu=200 obtenu=200
+[OK  ] likes        POST /likes cible inexistante -> 404 (anti-500)            attendu=404 obtenu=404  | Profil introuvable avec cibleId = '99999999'
+[OK  ] likes        auto-like -> conflit                                       attendu=409 obtenu=409
+[OK  ] likes        A like B -> 201                                            attendu=201 obtenu=201
+[OK  ] likes        double like -> conflit                                     attendu=409 obtenu=409
+[OK  ] likes        GET /likes (likes émis)                                    attendu=200 obtenu=200
+[OK  ] likes        GET /likes/recus (likes reçus)                             attendu=200 obtenu=200
+[OK  ] likes        B like A en retour -> match créé                           attendu=True obtenu=True
+[OK  ] matchs       GET /matches contient le nouveau match                     attendu=True obtenu=True
+[OK  ] matchs       GET /matches/historique                                    attendu={200,404} obtenu=200
+[OK  ] matchs       messages d'un match inconnu -> 404                         attendu=404 obtenu=404
+[OK  ] messages     GET /matches/{id}/messages                                 attendu=200 obtenu=200
+[OK  ] messages     POST message (repli HTTP)                                  attendu=200 obtenu=200
+[OK  ] messages     message persisté et lisible                                attendu=True obtenu=True
+[OK  ] messages     POST .../messages/lu                                       attendu={200,204} obtenu=204
+[OK  ] notif        GET /notifications                                         attendu=200 obtenu=200
+[OK  ] notif        GET /notifications/compteur                                attendu=200 obtenu=200
+[OK  ] notif        GET /notifications/non-lues                                attendu=200 obtenu=200
+[OK  ] notif        POST /notifications/{id}/lu                                attendu={200,204} obtenu=204
+[OK  ] notif        POST /notifications/lu-tout                                attendu={200,204} obtenu=204
+[OK  ] notif        notification inexistante -> 4xx                            attendu={400,404,422} obtenu=404
+[OK  ] reports      POST /reports cible inexistante -> 404 (anti-500)          attendu=404 obtenu=404  | Profil introuvable avec cibleId = '99999999'
+[OK  ] reports      auto-signalement -> conflit                                attendu=409 obtenu=409
+[OK  ] reports      POST /reports valide                                       attendu={200,201} obtenu=201
+[OK  ] acces        GET /reports en étudiant -> 403                            attendu={401,403} obtenu=403
+[OK  ] acces        POST /moderation/avertir en étudiant -> 403                attendu={401,403} obtenu=403
+[OK  ] acces        GET /moderation/journal en étudiant -> 403                 attendu={401,403} obtenu=403
+[OK  ] admin        forgot-password pour l'admin -> 200                        attendu=200 obtenu=200  | Si un compte existe pour cet email, un lien de réinitialisation a été envoyé.
+[OK  ] admin        lien de reset admin journalisé                             attendu=True obtenu=True
+[OK  ] admin        reset mot de passe admin -> 200                            attendu=200 obtenu=200  | Mot de passe réinitialisé avec succès. Vous pouvez maintenant vous connecter.
+[OK  ] admin        login admin                                                attendu=200 obtenu=200  | identifiants admin inconnus ?
+[OK  ] admin        GET /admin/dashboard                                       attendu=200 obtenu=200
+[OK  ] admin        GET /admin/stats                                           attendu=200 obtenu=200
+[OK  ] admin        GET /admin/users paginé                                    attendu=200 obtenu=200  | Opération réalisée avec succès.
+[OK  ] admin        GET /admin/users filtre email (aucun)                      attendu=200 obtenu=200
+[OK  ] admin        GET /admin/users filtre email ( trouvé)                    attendu=True obtenu=True
+[OK  ] admin        register C (cible admin)                                   attendu=201 obtenu=201
+[OK  ] admin        C retrouvé dans la liste admin                             attendu=True obtenu=True
+[OK  ] admin        PATCH .../suspend                                          attendu=200 obtenu=200  | Utilisateur suspendu avec succès.
+[OK  ] admin        statut de C = SUSPENDED                                    attendu=SUSPENDED obtenu=SUSPENDED
+[OK  ] admin        PATCH .../activate                                         attendu=200 obtenu=200  | Utilisateur réactivé avec succès.
+[OK  ] admin        PATCH .../role -> ADMIN                                    attendu=200 obtenu=200  | Rôle mis à jour avec succès.
+[OK  ] admin        PATCH .../role -> STUDENT                                  attendu=200 obtenu=200  | Rôle mis à jour avec succès.
+[OK  ] admin        PATCH /admin/users/{id} (emailVerified)                    attendu=200 obtenu=200  | Utilisateur mis à jour avec succès.
+[OK  ] admin        DELETE utilisateur inconnu -> 404                          attendu=404 obtenu=404
+[OK  ] reports      PATCH /reports/{id}/statut                                 attendu=200 obtenu=200
+[OK  ] reports      POST /reports/{id}/archiver                                attendu={200,204} obtenu=204
+[OK  ] reports      GET /reports en admin                                      attendu=200 obtenu=200
+[OK  ] reports      GET /reports filtré par statut                             attendu=200 obtenu=200
+[OK  ] moderation   avertir cible inexistante -> 404 (anti-500)                attendu=404 obtenu=404  | Profil introuvable avec utilisateurCibleId = '99999999'
+[OK  ] moderation   historique utilisateur inconnu -> vide/404                 attendu=True obtenu=True  | statut=200
+[OK  ] moderation   POST /moderation/avertir                                   attendu={200,201} obtenu=200
+[OK  ] moderation   POST /moderation/suspendre                                 attendu={200,201} obtenu=200
+[OK  ] moderation   POST /moderation/bannir                                    attendu={200,201} obtenu=200
+[OK  ] moderation   POST /moderation/debannir                                  attendu={200,201} obtenu=200
+[OK  ] moderation   GET /moderation/historique/{id}                            attendu=200 obtenu=200
+[OK  ] moderation   GET /moderation/journal en admin                           attendu=200 obtenu=200
+[OK  ] admin        DELETE /admin/users/{id} (C)                               attendu={200,204} obtenu=200  | Utilisateur supprimé avec succès.
+[OK  ] admin        C supprimé de la liste                                     attendu=True obtenu=True
+[OK  ] acces        GET /admin/dashboard en étudiant -> 403                    attendu=403 obtenu=403
+[OK  ] acces        DELETE /admin/users en étudiant -> 403                     attendu=403 obtenu=403
+[OK  ] profils      register D (jetable)                                       attendu=201 obtenu=201
+[OK  ] profils      login D                                                    attendu=200 obtenu=200
+[OK  ] profils      création du profil D                                       attendu=200 obtenu=200
+[OK  ] profils      profil D consultable                                       attendu=200 obtenu=200
+[OK  ] profils      DELETE /profiles/me                                        attendu={200,204} obtenu=200  | Profil supprimé avec succès.
+[OK  ] profils      profil D absent après suppression                          attendu={404,410} obtenu=404
+[OK  ] auth         POST /auth/logout                                          attendu={200,204} obtenu=200  | Déconnexion réussie.
+[OK  ] auth         refresh token révoqué après logout -> 401                  attendu=401 obtenu=401

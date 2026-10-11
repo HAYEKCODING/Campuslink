@@ -43,6 +43,8 @@ public class ProfileServiceImpl implements ProfileService {
                 .avatarUrl(request.getAvatarUrl())
                 .firstName(request.getFirstName().trim())
                 .lastName(request.getLastName().trim())
+                .gender(request.getGender())
+                .level(request.getLevel())
                 .dateOfBirth(request.getDateOfBirth())
                 .university(request.getUniversity())
                 .fieldOfStudy(request.getFieldOfStudy())

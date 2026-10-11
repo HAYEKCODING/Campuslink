@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { Camera, Calendar } from "lucide-react";
 import { useAsyncData } from "./hooks/useAsyncData";
 import { getUniversities, getFaculties, uploadAvatar, updateProfile } from "./services/profileService";
+import { LEVELS } from "./lib/referenceData";
+import { prepareImageForUpload } from "./lib/imageUtils";
 
 /**
  * CampusLink — Complétez votre profil (Étape 1/3)
@@ -11,9 +13,9 @@ import { getUniversities, getFaculties, uploadAvatar, updateProfile } from "./se
  *   dans `avatarUrl` : envoyer un dataURL base64 dépasserait la limite de
  *   500 caractères du champ et ferait échouer la sauvegarde.
  * - Université / faculté sont des champs éditables avec suggestions
- *   (référentiel local, le backend n'expose pas encore /reference/*).
- * - "Niveau d'étude" a été retiré : le modèle `ProfileRequest` ne possède
- *   aucun champ correspondant, la valeur serait perdue silencieusement.
+ *   (référentiel GET /reference/*, avec repli sur les listes locales).
+ * - "Niveau d'étude" (Licence / Master / Doctorat) est persisté via le champ
+ *   `level` de ProfileRequest (enum StudyLevel), optionnel mais recommandé.
  */
 
 function ProgressDots({ step, total = 3 }) {
@@ -62,7 +64,9 @@ export default function OnboardingStep1() {
   const [birthDate, setBirthDate] = useState("");
   const [university, setUniversity] = useState("");
   const [faculty, setFaculty] = useState("");
+  const [level, setLevel] = useState("");
   const [photoFile, setPhotoFile] = useState(null);
+  const [photoError, setPhotoError] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -81,17 +85,44 @@ export default function OnboardingStep1() {
     return () => URL.revokeObjectURL(url);
   }, [photoFile]);
 
-  const handlePhotoChange = (e) => {
+  /**
+   * Valide et prépare la photo AVANT la soumission : type accepté,
+   * redimensionnement/compression sous la limite de 5 Mo du backend.
+   * Sans cette étape, une photo de téléphone (8-15 Mo) faisait échouer
+   * POST /media/upload au moment de cliquer sur « Suivant ».
+   */
+  const handlePhotoChange = async (e) => {
     const file = e.target.files?.[0];
-    if (file) setPhotoFile(file);
+    e.target.value = "";
+    if (!file) return;
+
+    setPhotoError(null);
+    try {
+      const prepared = await prepareImageForUpload(file);
+      setPhotoFile(prepared);
+    } catch (err) {
+      setPhotoFile(null);
+      setPhotoError(err.message || "Cette image ne peut pas être utilisée.");
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError(null);
 
-    if (!birthDate || !university.trim() || !faculty.trim()) {
-      setSubmitError("Merci de compléter tous les champs obligatoires avant de continuer.");
+    // Messages explicites par champ : « compléter tous les champs » laissait
+    // l'utilisateur bloqué sans savoir lequel des champs (souvent la date,
+    // invisible une fois vide) empêchait d'avancer.
+    const missing = [];
+    if (!birthDate) missing.push("la date de naissance");
+    if (!university.trim()) missing.push("l'université");
+    if (!faculty.trim()) missing.push("la faculté");
+    if (missing.length > 0) {
+      const list =
+        missing.length === 1
+          ? missing[0]
+          : `${missing.slice(0, -1).join(", ")} et ${missing[missing.length - 1]}`;
+      setSubmitError(`Merci de renseigner ${list} avant de continuer.`);
       return;
     }
 
@@ -102,6 +133,7 @@ export default function OnboardingStep1() {
         birthDate,
         university: university.trim(),
         faculty: faculty.trim(),
+        level: level || null,
         ...(photo ? { photo } : {}),
       });
       navigate("/onboarding/2");
@@ -145,6 +177,7 @@ export default function OnboardingStep1() {
           />
           <p className="text-sm font-semibold text-violet-600">Ajouter une photo</p>
           <p className="text-xs text-slate-400 mt-0.5">JPG, PNG, max. 5Mo</p>
+          {photoError && <p className="text-xs text-rose-500 mt-1.5">{photoError}</p>}
         </div>
 
         <form className="space-y-5" onSubmit={handleSubmit}>
@@ -181,6 +214,25 @@ export default function OnboardingStep1() {
             value={faculty}
             onChange={setFaculty}
           />
+
+          <div>
+            <label htmlFor="study-level" className="text-sm font-semibold text-slate-700 mb-1.5 block">
+              Niveau d'étude
+            </label>
+            <select
+              id="study-level"
+              value={level}
+              onChange={(e) => setLevel(e.target.value)}
+              className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+            >
+              <option value="">Non précisé</option>
+              {LEVELS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {submitError && <p className="text-sm text-rose-500">{submitError}</p>}
 

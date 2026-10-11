@@ -64,7 +64,12 @@ server:
 # ===================== JWT =====================
 application:
   jwt:
-    secret: ${JWT_SECRET:changeThisSecretKeyInProductionEnvironmentAtLeast256BitsLong}
+    # Pas de valeur par défaut ici : le secret de développement (public, dans
+    # le repo) est fourni par application-dev.yml, et la production exige
+    # JWT_SECRET (application-prod.yml). Une application lancée sans secret
+    # échoue au démarrage plutôt que de retomber sur un secret dev connu de
+    # tous (signalé comme "sensitive data exposure" par les scanners).
+    secret: ${JWT_SECRET}
     access-token-expiration-ms: ${JWT_ACCESS_EXPIRATION:900000}      # 15 minutes
     refresh-token-expiration-ms: ${JWT_REFRESH_EXPIRATION:604800000} # 7 jours
     issuer: campuslink-backend
@@ -78,10 +83,24 @@ application:
   # ===================== Média (upload / compression) =====================
   media:
     folder: ${MEDIA_FOLDER:campuslink}
+    # Stockage local de repli quand application.cloudinary.* est vide (dev,
+    # démo, CI) : les fichiers sont écrits ici et servis via /media/files/**.
+    local-dir: ${MEDIA_LOCAL_DIR:uploads}
     max-file-size-bytes: ${MEDIA_MAX_FILE_SIZE_BYTES:5242880}
     allowed-content-types: ${MEDIA_ALLOWED_CONTENT_TYPES:image/jpeg,image/png,image/webp}
     quality: ${MEDIA_IMAGE_QUALITY:auto:good}
     max-dimension: ${MEDIA_MAX_DIMENSION:1080}
+
+  # ===================== Envoi d'emails =====================
+  mail:
+    # Mode « log-only » : aucun envoi SMTP, le destinataire et le sujet sont
+    # journalisés (corps en DEBUG) au lieu de lever EmailDeliveryException (503).
+    # - dev  : activé dans application-dev.yml (aucun SMTP en local, ce qui
+    #   bloquait /otp/send et /auth/forgot-password — et donc la vérification
+    #   d'email et la réinitialisation de mot de passe côté front).
+    # - prod : false par défaut ; ne jamais activer : les utilisateurs
+    #   n'enverraient jamais d'email et l'OTP / reset deviendrait inutilisable.
+    log-only: ${MAIL_LOG_ONLY:false}
 
   # ===================== OTP =====================
   otp:
@@ -102,6 +121,15 @@ application:
   # ===================== CORS =====================
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:3000,http://localhost:4200,http://localhost:5173,http://127.0.0.1:5173}
+
+# ===================== Seed administrateur (déploiement) =====================
+# Compte ADMIN créé au démarrage si les deux variables sont renseignées
+# (voir AdminSeedRunner — no-op en local/tests). Une fois le compte créé,
+# retirer les variables pour ne plus ré-exécuter le seed.
+campuslink:
+  admin:
+    email: ${ADMIN_EMAIL:}
+    password: ${ADMIN_PASSWORD:}
 
 # ===================== Swagger / OpenAPI =====================
 springdoc:

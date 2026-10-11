@@ -10,8 +10,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
+
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -19,7 +25,9 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -40,6 +48,36 @@ class MediaControllerTest {
     /** Voir {@link AuthControllerTest} : nécessaire pour la slice {@code @WebMvcTest}. */
     @MockBean
     private JwtService jwtService;
+
+    // ===================== GET /media/files/{filename} =====================
+
+    @Test
+    void serveLocalFile_shouldReturn200WithImageContentType(@org.junit.jupiter.api.io.TempDir Path tempDir)
+            throws Exception {
+        Path file = tempDir.resolve("abc123.png");
+        Files.write(file, "image".getBytes());
+        when(mediaService.findLocalFile("abc123.png")).thenReturn(Optional.of(new FileSystemResource(file)));
+
+        mockMvc.perform(get("/media/files/abc123.png"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.IMAGE_PNG));
+    }
+
+    @Test
+    void serveLocalFile_shouldReturn404_whenFileMissing() throws Exception {
+        when(mediaService.findLocalFile("missing.png")).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/media/files/missing.png"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void serveLocalFile_shouldReturn404_whenFilenameInvalid_withoutCallingService() throws Exception {
+        mockMvc.perform(get("/media/files/{filename}", "a b.png"))
+                .andExpect(status().isNotFound());
+
+        verify(mediaService, org.mockito.Mockito.never()).findLocalFile(any());
+    }
 
     // ===================== POST /media/upload =====================
 

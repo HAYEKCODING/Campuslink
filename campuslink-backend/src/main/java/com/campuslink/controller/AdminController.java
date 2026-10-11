@@ -40,10 +40,12 @@ import java.util.UUID;
  * <p><strong>Protection ROLE_ADMIN à deux niveaux</strong> : {@code /admin/**}
  * est déjà restreint par {@code SecurityConfig} (règle de chemin, appliquée
  * au niveau du filtre de sécurité, avant même que la requête n'atteigne ce
- * controller). {@code @PreAuthorize} ci-dessous est une seconde couche,
- * explicite et auto-documentée : si la règle de chemin venait à être
- * mal reconfigurée par erreur, cette annotation protège quand même chaque
- * méthode individuellement.</p>
+ * controller). {@code @PreAuthorize} est répété ici <strong>à la classe <em>et</em>
+ * à chaque méthode</strong> : seconde couche explicite et auto-documentée — si la
+ * règle de chemin (ou l'annotation de classe) venait à être mal reconfigurée,
+ * chaque méthode reste protégée individuellement. La redondance méthode par
+ * méthode rend aussi la protection détectable par les scanners de sécurité
+ * (qui ne savent pas résoudre les annotations de classe).</p>
  *
  * <p>Toutes les actions destructives ou limitant l'accès (suppression,
  * suspension, changement de rôle) reçoivent l'identifiant de l'administrateur
@@ -61,6 +63,7 @@ public class AdminController {
     private final AdminUserService adminUserService;
 
     @GetMapping("/users")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "Lister et rechercher des utilisateurs",
             description = "Sans filtre : liste complète paginée. Avec filtres : recherche dynamique. "
@@ -93,6 +96,7 @@ public class AdminController {
     }
 
     @PatchMapping("/users/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Modifier les champs administratifs d'un utilisateur (email, statut de vérification)")
     public ApiResponse<AdminUserResponse> updateUser(@PathVariable UUID userId,
                                                        @Valid @RequestBody AdminUpdateUserRequest request) {
@@ -101,6 +105,7 @@ public class AdminController {
     }
 
     @DeleteMapping("/users/{userId}")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Supprimer un utilisateur", description = "Un administrateur ne peut pas se supprimer lui-même.")
     public ApiResponse<Void> deleteUser(@AuthenticationPrincipal UserPrincipal principal,
                                          @PathVariable UUID userId) {
@@ -109,6 +114,7 @@ public class AdminController {
     }
 
     @PatchMapping("/users/{userId}/suspend")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "Suspendre un utilisateur",
             description = "Révoque également toutes ses sessions actives. Un administrateur ne peut pas se suspendre lui-même."
@@ -120,6 +126,7 @@ public class AdminController {
     }
 
     @PatchMapping("/users/{userId}/activate")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Réactiver un utilisateur")
     public ApiResponse<AdminUserResponse> activateUser(@PathVariable UUID userId) {
         AdminUserResponse response = adminUserService.activateUser(userId);
@@ -127,6 +134,7 @@ public class AdminController {
     }
 
     @PatchMapping("/users/{userId}/role")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(
             summary = "Changer le rôle d'un utilisateur",
             description = "Remplace l'intégralité des rôles de l'utilisateur par celui fourni. "
@@ -140,6 +148,7 @@ public class AdminController {
     }
 
     @GetMapping("/stats")
+    @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Statistiques globales sur les utilisateurs")
     public ApiResponse<AdminStatsResponse> getStatistics() {
         AdminStatsResponse response = adminUserService.getStatistics();

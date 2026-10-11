@@ -5,7 +5,9 @@ import com.campuslink.realtime.entity.Like;
 import com.campuslink.realtime.entity.Match;
 import com.campuslink.realtime.entity.enums.NotificationType;
 import com.campuslink.exception.DuplicateResourceException;
+import com.campuslink.exception.ResourceNotFoundException;
 import com.campuslink.realtime.repository.LikeRepository;
+import com.campuslink.repository.UserRepository;
 import com.campuslink.realtime.service.impl.LikeServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,6 +33,8 @@ class LikeServiceImplTest {
     private MatchService matchService;
     @Mock
     private NotificationService notificationService;
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private LikeServiceImpl likeService;
@@ -42,6 +46,7 @@ class LikeServiceImplTest {
     void setUp() {
         // lenient() : certains tests lèvent avant tout appel à save() (like de soi-même,
         // like déjà existant) — le stubbing serait alors déclaré inutile par Mockito.
+        lenient().when(userRepository.existsByLegacyId(CIBLE)).thenReturn(true);
         lenient().when(likeRepository.save(any(Like.class))).thenAnswer(invocation -> {
             Like like = invocation.getArgument(0);
             like.setId(100L);
@@ -91,5 +96,16 @@ class LikeServiceImplTest {
 
         assertThrows(DuplicateResourceException.class, () -> likeService.liker(EMETTEUR, CIBLE));
         verify(likeRepository, never()).save(any());
+    }
+
+    @Test
+    void liker_leve404_quandCibleInconnue() {
+        // Sans cette vérification, l'insertion violerait la FK fk_like_cible
+        // en base → 500 au lieu d'une erreur métier explicite (404).
+        when(userRepository.existsByLegacyId(999L)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> likeService.liker(EMETTEUR, 999L));
+        verify(likeRepository, never()).save(any());
+        verifyNoInteractions(notificationService);
     }
 }

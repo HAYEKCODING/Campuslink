@@ -1,7 +1,10 @@
 package com.campuslink.service;
 
 import com.campuslink.dto.response.MediaResponse;
+import org.springframework.core.io.Resource;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.util.Optional;
 
 /**
  * Contrat métier du module média (intégration Cloudinary).
@@ -39,5 +42,12 @@ public interface MediaService {
      * @throws com.campuslink.exception.MediaUploadException si la suppression échoue réellement
      */
     void delete(String publicId);
+
+    /**
+     * Charge un fichier du stockage local de repli (mode sans Cloudinary).
+     * Renvoie {@code Optional.empty()} si le nom est invalide (traversée de
+     * dossier possible) ou si le fichier n'existe pas.
+     */
+    Optional<Resource> findLocalFile(String filename);
 
 }

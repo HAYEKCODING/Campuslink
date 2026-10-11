@@ -1,5 +1,6 @@
 package com.campuslink.service.impl;
 
+import com.campuslink.config.CloudinaryProperties;
 import com.campuslink.config.MediaProperties;
 import com.campuslink.dto.response.MediaResponse;
 import com.campuslink.exception.MediaUploadException;
@@ -9,21 +10,38 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Implémentation du module média, basée sur le SDK Java officiel de Cloudinary.
  *
- * <p>La compression est appliquée à l'upload lui-même (transformation dite
- * "à l'entrée" : {@code quality}, {@code fetch_format: auto}, redimensionnement
- * en {@code crop: limit}) plutôt que servie à la demande — le fichier stocké
- * sur Cloudinary est déjà optimisé, chaque livraison ultérieure de l'URL
- * réutilise ce même asset compressé sans retraitement.</p>
+ * <p><strong>Deux modes de stockage, détection automatique</strong> :</p>
+ * <ul>
+ *   <li><strong>Cloudinary</strong> (credentials renseignés — production) :
+ *       compression et redimensionnement appliqués à l'upload lui-même
+ *       (transformation « à l'entrée » : {@code quality},
+ *       {@code fetch_format: auto}, {@code crop: limit}), plutôt que servis à
+ *       la demande.</li>
+ *   <li><strong>Stockage local de repli</strong> (credentials absents — dev,
+ *       démo, CI) : le fichier est écrit dans {@code application.media.local-dir}
+ *       et servi via {@code GET /media/files/{filename}}. Sans ce repli, un
+ *       environnement sans identifiants Cloudinary répond 500 sur chaque
+ *       upload et bloque l'onboarding à l'étape photo.</li>
+ * </ul>
  */
 @Slf4j
 @Service
@@ -31,11 +49,16 @@ import java.util.Map;
 public class MediaServiceImpl implements MediaService {
 
     private final Cloudinary cloudinary;
+    private final CloudinaryProperties cloudinaryProperties;
     private final MediaProperties mediaProperties;
 
     @Override
     public MediaResponse upload(MultipartFile file) {
         MediaFileValidator.validate(file, mediaProperties);
+
+        if (!isCloudinaryConfigured()) {
+            return uploadToLocal(file);
+        }
 
         try {
             Map<?, ?> uploadResult = cloudinary.uploader().upload(file.getBytes(), buildUploadOptions());
@@ -74,6 +97,11 @@ public class MediaServiceImpl implements MediaService {
 
     @Override
     public void delete(String publicId) {
+        if (!isCloudinaryConfigured()) {
+            deleteLocal(publicId);
+            return;
+        }
+
         try {
             Map<?, ?> result = cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
             String status = String.valueOf(result.get("result"));
@@ -92,6 +120,110 @@ public class MediaServiceImpl implements MediaService {
             throw new MediaUploadException("Impossible de supprimer le fichier pour le moment.", ex);
         }
     }
+
+    @Override
+    public Optional<Resource> findLocalFile(String filename) {
+        if (!StringUtils.hasText(filename) || !filename.matches("[A-Za-z0-9][A-Za-z0-9._-]*")) {
+            return Optional.empty();
+        }
+
+        Path dir = localDirectory().toAbsolutePath().normalize();
+        Path path = dir.resolve(filename).normalize();
+        if (!path.startsWith(dir) || !Files.isRegularFile(path)) {
+            return Optional.empty();
+        }
+        return Optional.of(new FileSystemResource(path));
+    }
+
+    // ===================== Stockage local de repli =====================
+
+    /** Les trois identifiants Cloudinary doivent être présents pour utiliser le cloud. */
+    private boolean isCloudinaryConfigured() {
+        return StringUtils.hasText(cloudinaryProperties.getCloudName())
+                && StringUtils.hasText(cloudinaryProperties.getApiKey())
+                && StringUtils.hasText(cloudinaryProperties.getApiSecret());
+    }
+
+    private Path localDirectory() {
+        return Paths.get(StringUtils.hasText(mediaProperties.getLocalDir())
+                ? mediaProperties.getLocalDir()
+                : "uploads");
+    }
+
+    /**
+     * Écrit le fichier dans le dossier local avec un nom unique (UUID +
+     * extension) et renvoie son URL publique construite depuis le contexte
+     * de requête (context-path {@code /api} compris).
+     */
+    private MediaResponse uploadToLocal(MultipartFile file) {
+        try {
+            Path dir = localDirectory();
+            Files.createDirectories(dir);
+
+            String originalName = StringUtils.cleanPath(
+                    file.getOriginalFilename() != null ? file.getOriginalFilename() : "fichier");
+            String extension = extensionOf(originalName);
+            String filename = UUID.randomUUID() + extension;
+
+            Path target = dir.resolve(filename).normalize();
+            if (!target.startsWith(dir.toAbsolutePath().normalize()) && !target.startsWith(dir)) {
+                throw new MediaUploadException("Chemin de fichier refusé.");
+            }
+            Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
+
+            String url = ServletUriComponentsBuilder.fromCurrentContextPath()
+                    .path("/media/files/{filename}")
+                    .buildAndExpand(filename)
+                    .toUriString();
+
+            log.warn("Cloudinary non configuré : fichier stocké localement → {} ({} octets)",
+                    filename, file.getSize());
+
+            return MediaResponse.builder()
+                    .url(url)
+                    .publicId(filename)
+                    .format(extension.startsWith(".") ? extension.substring(1) : null)
+                    .bytes(file.getSize())
+                    .build();
+
+        } catch (IOException ex) {
+            log.error("Écriture locale impossible : {}", ex.getMessage());
+            throw new MediaUploadException("Impossible d'enregistrer le fichier pour le moment.", ex);
+        }
+    }
+
+    /** Suppression idempotente côté local : fichier absent = succès. */
+    private void deleteLocal(String publicId) {
+        if (!StringUtils.hasText(publicId)) {
+            return;
+        }
+        try {
+            Path dir = localDirectory().toAbsolutePath().normalize();
+            Path path = dir.resolve(publicId).normalize();
+            if (!path.startsWith(dir)) {
+                log.warn("Suppression locale refusée (hors dossier) : {}", publicId);
+                return;
+            }
+            boolean deleted = Files.deleteIfExists(path);
+            log.info("Suppression locale de {} ({})", publicId,
+                    deleted ? "fichier supprimé" : "introuvable — traité comme idempotent");
+        } catch (IOException ex) {
+            log.error("Erreur lors de la suppression locale de {} : {}", publicId, ex.getMessage());
+            throw new MediaUploadException("Impossible de supprimer le fichier pour le moment.", ex);
+        }
+    }
+
+    /** Extension normalisée (ex. {@code .jpg}) ou chaîne vide. */
+    private String extensionOf(String filename) {
+        int dot = filename.lastIndexOf('.');
+        if (dot < 0) {
+            return "";
+        }
+        String extension = filename.substring(dot).replaceAll("[^A-Za-z0-9.]", "");
+        return extension.length() <= 10 ? extension : "";
+    }
+
+    // ===================== Mode Cloudinary =====================
 
     /**
      * Construit les paramètres d'upload : rangement dans le dossier configuré,

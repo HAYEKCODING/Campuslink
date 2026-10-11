@@ -5,6 +5,7 @@ import { useAsyncData } from "./hooks/useAsyncData";
 import { getMessages, sendMessage } from "./services/messagesService";
 import { getMatches } from "./services/matchesService";
 import { getMyProfile } from "./services/profileService";
+import { getRealtimeClient, sendTyping } from "./lib/realtime";
 import { LoadingState, ErrorState } from "./components/ui/AsyncStates";
 
 /**
@@ -15,6 +16,10 @@ import { LoadingState, ErrorState } from "./components/ui/AsyncStates";
  *  - historique : GET /matches/{matchId}/messages (chronologique)
  *  - envoi    : POST /matches/{matchId}/messages, avec ajout optimiste dans
  *    l'interface puis marquage de l'échec (avec renvoi) si l'API échoue.
+ *    (L'envoi reste HTTP : le serveur ne rédiffe pas l'émetteur sur
+ *    /user/queue/messages, seul le destinataire est notifié.)
+ *  - direct  : souscription STOMP /user/queue/messages — les messages reçus
+ *    pendant la conversation s'affichent en direct, dédupliqués par id.
  *
  * `expediteurId` est l'identifiant module temps réel : on compare avec le
  * `legacyId` du profil connecté pour savoir qui a écrit chaque message.
@@ -39,12 +44,72 @@ export default function ChatConversation() {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [peerTyping, setPeerTyping] = useState(false);
+  // Déclaré AVANT tout early return (loading/erreur) : un hook placé après un
+  // return conditionnel casse la règle des hooks (« Rendered more hooks than
+  // during the previous render ») et fait planter la conversation.
+  const typingTimerRef = React.useRef(null);
 
   useEffect(() => {
     if (history) {
       setMessages(history.map((m) => ({ ...m, time: formatTime(m.dateEnvoi) })));
     }
   }, [history]);
+
+  // Messages entrants en direct (STOMP) : on ne garde que ceux de cette
+  // conversation, en évitant les doublons avec l'historique HTTP.
+  useEffect(() => {
+    const rt = getRealtimeClient();
+    rt.connect();
+    const subscription = rt.subscribeUser("/queue/messages", (frame) => {
+      let incoming;
+      try {
+        incoming = JSON.parse(frame.body);
+      } catch {
+        return;
+      }
+      if (String(incoming.matchId) !== String(matchId)) return;
+      setMessages((prev) => {
+        if (incoming.id != null && prev.some((m) => m.id === incoming.id)) return prev;
+        return [...prev, { ...incoming, time: formatTime(incoming.dateEnvoi) }];
+      });
+    });
+    return () => subscription.unsubscribe();
+  }, [matchId]);
+
+  // Indicateur « en train d'écrire » de l'interlocuteur (broadcast /topic).
+  // Le serveur ne fait pas le ménage : on masque après 4s sans nouvel événement.
+  useEffect(() => {
+    const rt = getRealtimeClient();
+    rt.connect();
+    let active = { unsubscribe() {} };
+    // Souscription rejouée à chaque (re)connexion : les souscriptions /topic
+    // ne sont pas conservées par le client après une reconnexion.
+    const offConnect = rt.onConnect(() => {
+      active.unsubscribe();
+      active = rt.subscribe(`/topic/matches/${matchId}/typing`, (frame) => {
+        try {
+          const event = JSON.parse(frame.body);
+          if (me && event.utilisateurId === me.legacyId) return; // le sien
+          setPeerTyping(!!event.enTrainDecrire);
+        } catch {
+          // trame malformée : ignorée
+        }
+      });
+    });
+    return () => {
+      offConnect();
+      active.unsubscribe();
+      setPeerTyping(false);
+    };
+  }, [matchId, me]);
+
+  useEffect(() => {
+    if (!peerTyping) return undefined;
+    const timer = setTimeout(() => setPeerTyping(false), 4000);
+    return () => clearTimeout(timer);
+  }, [peerTyping]);
+
 
   if (loading || matchesLoading) {
     return (
@@ -109,6 +174,16 @@ export default function ChatConversation() {
       .finally(() => setSending(false));
   };
 
+  // Indicateur « en train d'écrire » côté émetteur (debounce simple).
+  const handleDraftChange = (value) => {
+    setDraft(value);
+    if (value) {
+      sendTyping(matchId, true);
+      clearTimeout(typingTimerRef.current);
+      typingTimerRef.current = setTimeout(() => sendTyping(matchId, false), 2500);
+    }
+  };
+
   const handleRetry = (failedMessage) => {
     setMessages((prev) => prev.filter((m) => m !== failedMessage));
     setDraft(failedMessage.contenu);
@@ -166,6 +241,9 @@ export default function ChatConversation() {
 
         {/* messages */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
+          {peerTyping && (
+            <p className="text-xs text-slate-400 italic animate-pulse">L'interlocuteur écrit…</p>
+          )}
           {messages.length === 0 && (
             <p className="text-sm text-slate-400 text-center mt-8">
               Aucun message pour l'instant. Dites bonjour !
@@ -219,7 +297,7 @@ export default function ChatConversation() {
           <input
             type="text"
             value={draft}
-            onChange={(e) => setDraft(e.target.value)}
+            onChange={(e) => handleDraftChange(e.target.value)}
             placeholder="Écrire un message..."
             aria-label="Écrire un message"
             className="flex-1 px-4 py-2.5 text-sm rounded-full bg-slate-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-violet-400"

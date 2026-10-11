@@ -21,6 +21,7 @@ import com.campuslink.security.JwtService;
 import com.campuslink.security.UserPrincipal;
 import com.campuslink.service.AuthService;
 import com.campuslink.service.OtpService;
+import com.campuslink.util.EmailMasker;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -83,7 +84,7 @@ public class AuthServiceImpl implements AuthService {
         user.setProfile(profile);
 
         User savedUser = userRepository.save(user);
-        log.info("Nouveau compte créé : {}", savedUser.getEmail());
+        log.info("Nouveau compte créé : {}", EmailMasker.mask(savedUser.getEmail()));
 
         // generateAndSend() est annotée REQUIRES_NEW côté OtpServiceImpl : un échec
         // d'envoi d'email (SMTP injoignable, etc.) tourne dans sa propre transaction
@@ -93,7 +94,7 @@ public class AuthServiceImpl implements AuthService {
             otpService.generateAndSend(savedUser.getEmail(), OtpType.EMAIL_VERIFICATION);
         } catch (Exception ex) {
             log.warn("Échec de l'envoi de l'email de vérification pour {} : {}",
-                    savedUser.getEmail(), ex.getMessage());
+                    EmailMasker.mask(savedUser.getEmail()), ex.getMessage());
         }
 
         return userMapper.toUserResponse(savedUser);
@@ -117,7 +118,7 @@ public class AuthServiceImpl implements AuthService {
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
 
-        log.info("Connexion réussie : {}", email);
+        log.info("Connexion réussie : {}", EmailMasker.mask(email));
         return issueTokens(principal);
     }
 
@@ -154,7 +155,7 @@ public class AuthServiceImpl implements AuthService {
         storedToken.setRevoked(true);
         refreshTokenRepository.save(storedToken);
 
-        log.info("Rafraîchissement de token pour : {}", email);
+        log.info("Rafraîchissement de token pour : {}", EmailMasker.mask(email));
         return issueTokens(new UserPrincipal(user));
     }
 

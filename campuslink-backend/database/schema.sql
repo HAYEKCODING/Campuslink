@@ -41,6 +41,26 @@ CREATE DATABASE IF NOT EXISTS campuslink_db
 
 USE campuslink_db;
 
+-- Index conditionnels : MySQL 5.6/8 n'accepte pas `CREATE INDEX IF NOT EXISTS`,
+-- le script doit donc rester ré-exécutable sur une base déjà provisionnée
+-- (les CREATE TABLE utilisent déjà IF NOT EXISTS).
+DROP PROCEDURE IF EXISTS campuslink_create_index;
+DELIMITER //
+CREATE PROCEDURE campuslink_create_index(IN tbl VARCHAR(64), IN idx VARCHAR(64), IN cols VARCHAR(500))
+BEGIN
+    IF NOT EXISTS (SELECT 1
+                   FROM information_schema.statistics
+                   WHERE table_schema = DATABASE()
+                     AND table_name = tbl
+                     AND index_name = idx) THEN
+        SET @sql = CONCAT('CREATE INDEX ', idx, ' ON ', tbl, ' (', cols, ')');
+        PREPARE stmt FROM @sql;
+        EXECUTE stmt;
+        DEALLOCATE PREPARE stmt;
+    END IF;
+END//
+DELIMITER ;
+
 -- ============================================================================
 -- TABLE : roles
 -- ============================================================================
@@ -57,7 +77,7 @@ CREATE TABLE IF NOT EXISTS roles (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
   COMMENT='Rôles applicatifs attribuables aux utilisateurs (RBAC)';
 
-CREATE INDEX idx_roles_name ON roles (name);
+CALL campuslink_create_index('roles', 'idx_roles_name', 'name');
 
 -- ============================================================================
 -- TABLE : users
@@ -85,8 +105,8 @@ CREATE TABLE IF NOT EXISTS users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
   COMMENT='Comptes utilisateurs — entité centrale d''authentification';
 
-CREATE INDEX idx_users_email  ON users (email);
-CREATE INDEX idx_users_status ON users (status);
+CALL campuslink_create_index('users', 'idx_users_email', 'email');
+CALL campuslink_create_index('users', 'idx_users_status', 'status');
 
 -- ============================================================================
 -- TABLE : profiles
@@ -98,6 +118,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     last_name         VARCHAR(100) NOT NULL,
     date_of_birth     DATE,
     gender            VARCHAR(30),
+    level             VARCHAR(20),
     bio               VARCHAR(1000),
     avatar_url        VARCHAR(500),
     phone_number      VARCHAR(20),
@@ -115,6 +136,9 @@ CREATE TABLE IF NOT EXISTS profiles (
     CONSTRAINT ck_profiles_gender CHECK (
         gender IS NULL OR gender IN ('MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY')
     ),
+    CONSTRAINT ck_profiles_level CHECK (
+        level IS NULL OR level IN ('LICENCE', 'MASTER', 'DOCTORAT')
+    ),
     CONSTRAINT ck_profiles_graduation_year CHECK (
         graduation_year IS NULL OR graduation_year BETWEEN 1900 AND 2100
     ),
@@ -128,7 +152,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
   COMMENT='Informations personnelles et académiques (1-1 avec users)';
 
-CREATE INDEX idx_profiles_user_id ON profiles (user_id);
+CALL campuslink_create_index('profiles', 'idx_profiles_user_id', 'user_id');
 
 -- ============================================================================
 -- TABLE : profile_interests
@@ -145,7 +169,7 @@ CREATE TABLE IF NOT EXISTS profile_interests (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
   COMMENT='Centres d''intérêt libres associés à un profil';
 
-CREATE INDEX idx_profile_interests_profile_id ON profile_interests (profile_id);
+CALL campuslink_create_index('profile_interests', 'idx_profile_interests_profile_id', 'profile_id');
 
 -- ============================================================================
 -- TABLE : otp_codes
@@ -172,9 +196,9 @@ CREATE TABLE IF NOT EXISTS otp_codes (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
   COMMENT='Codes à usage unique (vérification email/téléphone, reset mot de passe, 2FA)';
 
-CREATE INDEX idx_otp_codes_user_id         ON otp_codes (user_id);
-CREATE INDEX idx_otp_codes_user_type_used  ON otp_codes (user_id, type, used);
-CREATE INDEX idx_otp_codes_expires_at      ON otp_codes (expires_at);
+CALL campuslink_create_index('otp_codes', 'idx_otp_codes_user_id', 'user_id');
+CALL campuslink_create_index('otp_codes', 'idx_otp_codes_user_type_used', 'user_id, type, used');
+CALL campuslink_create_index('otp_codes', 'idx_otp_codes_expires_at', 'expires_at');
 
 -- ============================================================================
 -- TABLE DE JOINTURE : user_roles (Many-to-Many entre users et roles)
@@ -191,8 +215,8 @@ CREATE TABLE IF NOT EXISTS user_roles (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
   COMMENT='Table de jointure Many-to-Many entre users et roles';
 
-CREATE INDEX idx_user_roles_user_id ON user_roles (user_id);
-CREATE INDEX idx_user_roles_role_id ON user_roles (role_id);
+CALL campuslink_create_index('user_roles', 'idx_user_roles_user_id', 'user_id');
+CALL campuslink_create_index('user_roles', 'idx_user_roles_role_id', 'role_id');
 
 -- ============================================================================
 -- TABLE : refresh_tokens
@@ -214,8 +238,8 @@ CREATE TABLE IF NOT EXISTS refresh_tokens (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
   COMMENT='Suivi de révocation des refresh tokens (aucun JWT stocké)';
 
-CREATE INDEX idx_refresh_tokens_user_id    ON refresh_tokens (user_id);
-CREATE INDEX idx_refresh_tokens_expires_at ON refresh_tokens (expires_at);
+CALL campuslink_create_index('refresh_tokens', 'idx_refresh_tokens_user_id', 'user_id');
+CALL campuslink_create_index('refresh_tokens', 'idx_refresh_tokens_expires_at', 'expires_at');
 
 -- ============================================================================
 -- TABLE : password_reset_tokens
@@ -239,8 +263,8 @@ CREATE TABLE IF NOT EXISTS password_reset_tokens (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
   COMMENT='Liens de réinitialisation de mot de passe (aucun token en clair stocké)';
 
-CREATE INDEX idx_password_reset_tokens_user_id    ON password_reset_tokens (user_id);
-CREATE INDEX idx_password_reset_tokens_expires_at ON password_reset_tokens (expires_at);
+CALL campuslink_create_index('password_reset_tokens', 'idx_password_reset_tokens_user_id', 'user_id');
+CALL campuslink_create_index('password_reset_tokens', 'idx_password_reset_tokens_expires_at', 'expires_at');
 
 -- ============================================================================
 -- SEED : rôles applicatifs de référence
@@ -273,8 +297,8 @@ CREATE TABLE IF NOT EXISTS likes (
         REFERENCES users (legacy_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE INDEX idx_like_emetteur ON likes(emetteur_id);
-CREATE INDEX idx_like_cible    ON likes(cible_id);
+CALL campuslink_create_index('likes', 'idx_like_emetteur', 'emetteur_id');
+CALL campuslink_create_index('likes', 'idx_like_cible', 'cible_id');
 
 CREATE TABLE IF NOT EXISTS matches (
     id               BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -292,9 +316,9 @@ CREATE TABLE IF NOT EXISTS matches (
         REFERENCES users (legacy_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE INDEX idx_match_utilisateur1 ON matches(utilisateur1_id);
-CREATE INDEX idx_match_utilisateur2 ON matches(utilisateur2_id);
-CREATE INDEX idx_match_statut       ON matches(statut);
+CALL campuslink_create_index('matches', 'idx_match_utilisateur1', 'utilisateur1_id');
+CALL campuslink_create_index('matches', 'idx_match_utilisateur2', 'utilisateur2_id');
+CALL campuslink_create_index('matches', 'idx_match_statut', 'statut');
 
 CREATE TABLE IF NOT EXISTS messages (
     id               BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -311,9 +335,9 @@ CREATE TABLE IF NOT EXISTS messages (
         REFERENCES users (legacy_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE INDEX idx_message_match       ON messages(match_id);
-CREATE INDEX idx_message_expediteur  ON messages(expediteur_id);
-CREATE INDEX idx_message_date_envoi  ON messages(date_envoi);
+CALL campuslink_create_index('messages', 'idx_message_match', 'match_id');
+CALL campuslink_create_index('messages', 'idx_message_expediteur', 'expediteur_id');
+CALL campuslink_create_index('messages', 'idx_message_date_envoi', 'date_envoi');
 
 CREATE TABLE IF NOT EXISTS notifications (
     id             BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -328,8 +352,8 @@ CREATE TABLE IF NOT EXISTS notifications (
         REFERENCES users (legacy_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE INDEX idx_notification_user ON notifications(user_id);
-CREATE INDEX idx_notification_lu   ON notifications(lu);
+CALL campuslink_create_index('notifications', 'idx_notification_user', 'user_id');
+CALL campuslink_create_index('notifications', 'idx_notification_lu', 'lu');
 
 CREATE TABLE IF NOT EXISTS reports (
     id               BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -350,9 +374,9 @@ CREATE TABLE IF NOT EXISTS reports (
         REFERENCES matches (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE INDEX idx_report_cible    ON reports(cible_id);
-CREATE INDEX idx_report_emetteur ON reports(emetteur_id);
-CREATE INDEX idx_report_statut   ON reports(statut);
+CALL campuslink_create_index('reports', 'idx_report_cible', 'cible_id');
+CALL campuslink_create_index('reports', 'idx_report_emetteur', 'emetteur_id');
+CALL campuslink_create_index('reports', 'idx_report_statut', 'statut');
 
 CREATE TABLE IF NOT EXISTS moderation_logs (
     id                    BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -371,5 +395,48 @@ CREATE TABLE IF NOT EXISTS moderation_logs (
         REFERENCES reports (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE INDEX idx_moderationlog_cible      ON moderation_logs(utilisateur_cible_id);
-CREATE INDEX idx_moderationlog_moderateur ON moderation_logs(moderateur_id);
+CALL campuslink_create_index('moderation_logs', 'idx_moderationlog_cible', 'utilisateur_cible_id');
+CALL campuslink_create_index('moderation_logs', 'idx_moderationlog_moderateur', 'moderateur_id');
+
+-- ============================================================================
+-- TABLE : testimonials  (GET /testimonials — landing page, endpoint public)
+-- ============================================================================
+-- Contenu éditorial géré côté administration ; `active` permet de masquer un
+-- témoignage sans le supprimer, `display_order` contrôle l'ordre d'affichage.
+CREATE TABLE IF NOT EXISTS testimonials (
+    id             BINARY(16)     PRIMARY KEY,
+    name           VARCHAR(100) NOT NULL,
+    role           VARCHAR(100),
+    photo          VARCHAR(500),
+    quote          VARCHAR(1000) NOT NULL,
+    display_order  INTEGER      NOT NULL DEFAULT 0,
+    active         TINYINT(1)   NOT NULL DEFAULT 1,
+    created_at     DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at     DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+                                    ON UPDATE CURRENT_TIMESTAMP(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+  COMMENT='Témoignages affichés sur la landing page';
+
+CALL campuslink_create_index('testimonials', 'idx_testimonials_active_order', 'active, display_order');
+
+-- ============================================================================
+-- TABLE : contact_messages  (POST /contact — file d'attente publique)
+-- ============================================================================
+-- Champs alignés sur ContactRequest (name, email, message). `handled` signale
+-- qu'un administrateur a traité le message (réponse envoyée).
+CREATE TABLE IF NOT EXISTS contact_messages (
+    id          BINARY(16)     PRIMARY KEY,
+    name        VARCHAR(100) NOT NULL,
+    email       VARCHAR(180) NOT NULL,
+    message     VARCHAR(2000) NOT NULL,
+    handled     TINYINT(1)   NOT NULL DEFAULT 0,
+    created_at  DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at  DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+                                    ON UPDATE CURRENT_TIMESTAMP(6)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+  COMMENT='Messages du formulaire de contact de la landing page';
+
+CALL campuslink_create_index('contact_messages', 'idx_contact_messages_created_at', 'created_at');
+CALL campuslink_create_index('contact_messages', 'idx_contact_messages_handled', 'handled');
+
+DROP PROCEDURE IF EXISTS campuslink_create_index;

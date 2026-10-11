@@ -10,6 +10,7 @@ import com.campuslink.repository.RefreshTokenRepository;
 import com.campuslink.repository.UserRepository;
 import com.campuslink.service.EmailService;
 import com.campuslink.service.PasswordResetService;
+import com.campuslink.util.EmailMasker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -85,7 +86,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         String resetLink = buildResetLink(rawToken);
         emailService.sendPasswordResetEmail(user, resetLink, (int) properties.getTokenExpirationMinutes());
 
-        log.info("Lien de réinitialisation généré pour {}", email);
+        log.info("Lien de réinitialisation généré pour {}", EmailMasker.mask(email));
     }
 
     @Override
@@ -112,7 +113,7 @@ public class PasswordResetServiceImpl implements PasswordResetService {
         int revokedCount = refreshTokenRepository.revokeAllActiveForUser(user, Instant.now());
 
         log.info("Mot de passe réinitialisé pour {} — {} session(s) révoquée(s).",
-                user.getEmail(), revokedCount);
+                EmailMasker.mask(user.getEmail()), revokedCount);
     }
 
     private void enforceCooldown(User user) {

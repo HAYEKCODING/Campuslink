@@ -101,11 +101,14 @@ mysql -u root < database/schema.sql
 
 Autre possibilité : **phpMyAdmin** → onglet *Importer* → choisir
 `database/schema.sql`. Le script crée `campuslink_db` (utf8mb4) si elle
-n'existe pas, crée les 14 tables et **seed les 3 rôles**
+n'existe pas, crée les 16 tables et **seed les 3 rôles**
 (`STUDENT`, `TEACHER`, `ADMIN`).
 
 > ⚠️ Ce seed est obligatoire : sans lui, l'inscription échoue avec
 > « Rôle STUDENT introuvable en base ».
+>
+> `schema.sql` est **idempotent** (réexécutable sans erreur) : il recrée les
+> tables manquantes et ignore celles qui existent déjà.
 
 #### 3. Lancer l'application
 
@@ -547,6 +550,34 @@ psql -U postgres -d campuslink_db -f database/schema.postgresql.sql
 > En développement, `ddl-auto: update` (profil `dev`) peut aussi générer le schéma
 > automatiquement à partir des entités JPA. `database/schema.sql` reste la source
 > de vérité pour la production (profil `prod`, `ddl-auto: validate`).
+
+---
+
+## Déploiement — purge des données de test et seed admin
+
+Avant un déploiement, la base locale (remplies pendant le développement) est
+**purgée** puis le premier compte administrateur est créé :
+
+```bash
+# 1. Purge : vide toutes les tables SAUF roles (3 rôles) et testimonials
+#    (contenu éditorial). Idempotent, contraintes gérées (FK checks off).
+mysql -u root campuslink_db < database/cleanup.sql
+
+# 2. Démarrage avec le seed admin (idempotent : no-op si le compte existe)
+set ADMIN_EMAIL=admin@campuslink.ci
+set ADMIN_PASSWORD=<mot-de-passe-fort>
+mvnd spring-boot:run
+```
+
+- `database/cleanup.sql` supprime aussi bien les utilisateurs/profils que les
+  données temps réel (likes, matchs, messages, rapports…) — seuls les rôles et
+  les témoignages survivent.
+- `AdminSeedRunner` crée le compte `ADMIN_EMAIL` avec le hash BCrypt, statut
+  `ACTIVE` et rôle `ADMIN`. Variables absentes = no-op (aucun risque en local
+  ni en CI) ; rôle `ADMIN` absent de `roles` = erreur explicite au démarrage.
+- Les routes publiques de la landing (`/stats/public`, `/testimonials`,
+  `/contact`, `/reference/*`) fonctionnent dès le démarrage, sans
+  authentification — voir `SecurityConstants.PUBLIC_ENDPOINTS`.
 
 ---
 

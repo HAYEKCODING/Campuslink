@@ -54,6 +54,26 @@ function unwrap(json) {
   return json;
 }
 
+/**
+ * Recadre une URL de média locale sur l'origine API courante.
+ *
+ * Le backend construit les URLs de fichiers locaux depuis l'hôte:port de la
+ * requête d'upload (`ServletUriComponentsBuilder`), et ces URLs sont ensuite
+ * persistées en base (avatar_url…). Si le port d'écoute change (8081 -> 8080,
+ * backend derrière un proxy, démo sur un autre hôte), toutes les URLs déjà
+ * stockées deviennent mortes (ERR_CONNECTION_REFUSED).
+ *
+ * On rebase donc tout chemin se terminant par `/media/files/{fichier}` sur
+ * l'origine de VITE_API_URL. Les URLs Cloudinary (res.cloudinary.com) ne
+ * matchent pas ce motif et restent intactes.
+ */
+export function resolveMediaUrl(url) {
+  if (!url || typeof url !== "string") return url;
+  const match = url.match(/^https?:\/\/[^/]+(\/[^?]*)?\/media\/files\/([A-Za-z0-9][A-Za-z0-9._-]*)$/);
+  if (!match) return url;
+  return `${API_BASE_URL}/media/files/${match[2]}`;
+}
+
 function buildFetchOptions(method, body, headers) {
   const isFormData = typeof FormData !== "undefined" && body instanceof FormData;
   return {
@@ -93,6 +113,10 @@ async function request(path, { method = "GET", body, headers = {}, skipAuthRetry
   // Les routes /auth/* (login, register, reset...) renvoient un 401 métier
   // ("Identifiants invalides.") : ce n'est pas une session expirée.
   const isAuthRoute = path.startsWith("/auth/");
+  // Une session n'existe que si au moins un token est stocké : un 401 reçu
+  // sans session (visiteur anonyme sur une route qui exigerait une auth) n'est
+  // pas une "session expirée" et ne doit pas déclencher de redirection.
+  const hadSession = !!getToken() || !!getRefreshToken();
   let response = await fetch(`${API_BASE_URL}${path}`, { ...buildFetchOptions(method, body, headers), ...rest });
 
   if (response.status === 401 && !skipAuthRetry && !isAuthRoute && getRefreshToken()) {
@@ -106,10 +130,16 @@ async function request(path, { method = "GET", body, headers = {}, skipAuthRetry
   }
 
   if (response.status === 401 && !isAuthRoute) {
-    clearAuth();
-    const error = new Error("Session expirée, veuillez vous reconnecter.");
+    if (hadSession) {
+      // Session réellement expirée (refresh échoué ou absent) : nettoyage +
+      // redirection via App.jsx.
+      clearAuth();
+      window.dispatchEvent(new CustomEvent("campuslink:unauthorized"));
+    }
+    const error = new Error(
+      hadSession ? "Session expirée, veuillez vous reconnecter." : "Authentification requise."
+    );
     error.status = 401;
-    window.dispatchEvent(new CustomEvent("campuslink:unauthorized"));
     throw error;
   }
 

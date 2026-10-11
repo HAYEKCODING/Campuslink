@@ -5,6 +5,7 @@ import com.campuslink.entity.User;
 import com.campuslink.enums.OtpType;
 import com.campuslink.exception.EmailDeliveryException;
 import com.campuslink.service.EmailService;
+import com.campuslink.util.EmailMasker;
 import com.campuslink.util.OtpEmailTemplateBuilder;
 import com.campuslink.util.PasswordResetEmailTemplateBuilder;
 import jakarta.mail.MessagingException;
@@ -39,6 +40,17 @@ public class EmailServiceImpl implements EmailService {
     @Value("${spring.mail.username}")
     private String fromAddress;
 
+    /**
+     * Mode « log-only » ({@code application.mail.log-only}) : aucun envoi SMTP,
+     * le destinataire et le sujet sont journalisés et la méthode sort normalement.
+     * Activé uniquement dans le profil dev (aucun serveur SMTP en local) où il
+     * débloquait /otp/send et /auth/forgot-password en 503 ; forcé à false en prod
+     * (application-prod.yml) pour ne jamais couper silencieusement l'OTP ni la
+     * réinitialisation de mot de passe.
+     */
+    @Value("${application.mail.log-only:false}")
+    private boolean logOnly;
+
     @Override
     public void sendOtpCode(User user, String code, OtpType type, int expirationMinutes) {
         String recipientName = resolveRecipientName(user);
@@ -62,6 +74,13 @@ public class EmailServiceImpl implements EmailService {
      * du {@link MimeMessage} et la gestion d'erreur entre les deux méthodes publiques.
      */
     private void send(String toAddress, String subject, String htmlBody, String logLabel) {
+        if (logOnly) {
+            log.warn("[MAIL:LOG-ONLY] Email {} NON envoyé à {} — sujet : {} (mode application.mail.log-only)",
+                    logLabel, EmailMasker.mask(toAddress), subject);
+            log.debug("[MAIL:LOG-ONLY] corps HTML : {}", htmlBody);
+            return;
+        }
+
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
@@ -71,10 +90,10 @@ public class EmailServiceImpl implements EmailService {
             helper.setText(htmlBody, true);
 
             mailSender.send(message);
-            log.info("Email {} envoyé à {}", logLabel, toAddress);
+            log.info("Email {} envoyé à {}", logLabel, EmailMasker.mask(toAddress));
 
         } catch (MessagingException | MailException ex) {
-            log.error("Échec de l'envoi de l'email {} à {} : {}", logLabel, toAddress, ex.getMessage());
+            log.error("Échec de l'envoi de l'email {} à {} : {}", logLabel, EmailMasker.mask(toAddress), ex.getMessage());
             throw new EmailDeliveryException(
                     "Impossible d'envoyer l'email pour le moment. Veuillez réessayer ultérieurement.", ex);
         }

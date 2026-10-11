@@ -71,6 +71,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     last_name         VARCHAR(100) NOT NULL,
     date_of_birth     DATE,
     gender            VARCHAR(30),
+    level             VARCHAR(20),
     bio               VARCHAR(1000),
     avatar_url        VARCHAR(500),
     phone_number      VARCHAR(20),
@@ -89,6 +90,9 @@ CREATE TABLE IF NOT EXISTS profiles (
     CONSTRAINT ck_profiles_gender CHECK (
         gender IS NULL OR gender IN ('MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY')
     ),
+    CONSTRAINT ck_profiles_level CHECK (
+        level IS NULL OR level IN ('LICENCE', 'MASTER', 'DOCTORAT')
+    ),
     CONSTRAINT ck_profiles_graduation_year CHECK (
         graduation_year IS NULL OR graduation_year BETWEEN 1900 AND 2100
     ),
@@ -103,6 +107,7 @@ CREATE TABLE IF NOT EXISTS profiles (
 -- Filet de sécurité idempotent pour une base déjà provisionnée avant l'ajout
 -- de cette colonne (une exécution sur schéma neuf la trouve déjà déclarée ci-dessus).
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS neighborhood VARCHAR(100);
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS level VARCHAR(20);
 
 COMMENT ON TABLE profiles IS 'Informations personnelles et académiques (1-1 avec users)';
 
@@ -364,3 +369,44 @@ CREATE TABLE IF NOT EXISTS moderation_logs (
 );
 CREATE INDEX IF NOT EXISTS idx_moderationlog_cible       ON moderation_logs(utilisateur_cible_id);
 CREATE INDEX IF NOT EXISTS idx_moderationlog_moderateur  ON moderation_logs(moderateur_id);
+
+-- ============================================================================
+-- TABLE : testimonials  (GET /testimonials — landing page, endpoint public)
+-- ============================================================================
+-- Contenu éditorial géré côté administration ; `active` permet de masquer un
+-- témoignage sans le supprimer, `display_order` contrôle l'ordre d'affichage.
+CREATE TABLE IF NOT EXISTS testimonials (
+    id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name           VARCHAR(100) NOT NULL,
+    role           VARCHAR(100),
+    photo          VARCHAR(500),
+    quote          VARCHAR(1000) NOT NULL,
+    display_order  INTEGER  NOT NULL DEFAULT 0,
+    active         BOOLEAN  NOT NULL DEFAULT TRUE,
+    created_at     TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_testimonials_active_order ON testimonials (active, display_order);
+
+COMMENT ON TABLE testimonials IS 'Témoignages affichés sur la landing page';
+
+-- ============================================================================
+-- TABLE : contact_messages  (POST /contact — file d'attente publique)
+-- ============================================================================
+-- Champs alignés sur ContactRequest (name, email, message). `handled` signale
+-- qu'un administrateur a traité le message (réponse envoyée).
+CREATE TABLE IF NOT EXISTS contact_messages (
+    id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name        VARCHAR(100) NOT NULL,
+    email       VARCHAR(180) NOT NULL,
+    message     VARCHAR(2000) NOT NULL,
+    handled     BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_contact_messages_created_at ON contact_messages (created_at);
+CREATE INDEX IF NOT EXISTS idx_contact_messages_handled    ON contact_messages (handled);
+
+COMMENT ON TABLE contact_messages IS 'Messages du formulaire de contact de la landing page';

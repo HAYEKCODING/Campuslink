@@ -2,6 +2,7 @@ package com.campuslink.controller;
 
 import com.campuslink.dto.request.ProfileRequest;
 import com.campuslink.dto.request.ProfileSearchCriteria;
+import com.campuslink.enums.Gender;
 import com.campuslink.dto.response.ApiResponse;
 import com.campuslink.dto.response.PageResponse;
 import com.campuslink.dto.response.ProfileResponse;
@@ -110,6 +111,9 @@ public class ProfileController {
             @RequestParam(required = false) @Min(value = 0, message = "L'âge maximum ne peut pas être négatif.")
             @Max(value = 150, message = "L'âge maximum n'est pas réaliste.") Integer maxAge,
 
+            @Parameter(description = "Genre (MALE, FEMALE, OTHER, PREFER_NOT_TO_SAY)")
+            @RequestParam(required = false) Gender gender,
+
             @Parameter(description = "Établissement (recherche partielle, insensible à la casse)")
             @RequestParam(required = false) String university,
 
@@ -125,16 +129,21 @@ public class ProfileController {
             @Parameter(description = "Centres d'intérêt — correspond aux profils ayant au moins un des intérêts listés")
             @RequestParam(required = false) Set<String> interests,
 
-            @PageableDefault(size = 20, sort = "firstName") Pageable pageable) {
+            @PageableDefault(size = 20, sort = "firstName") Pageable pageable,
+
+            @Parameter(description = "Utilisateur connecté — son propre profil est exclu des résultats (null si anonyme)")
+            @AuthenticationPrincipal UserPrincipal principal) {
 
         ProfileSearchCriteria criteria = ProfileSearchCriteria.builder()
                 .minAge(minAge)
                 .maxAge(maxAge)
+                .gender(gender)
                 .university(university)
                 .fieldOfStudy(fieldOfStudy)
                 .neighborhood(neighborhood)
                 .city(city)
                 .interests(interests)
+                .excludedUserId(principal != null ? principal.getId() : null)
                 .build();
 
         var results = profileSearchService.search(criteria, pageable);

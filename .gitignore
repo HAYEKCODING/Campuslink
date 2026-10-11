@@ -27,3 +27,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Stockage local de repli du module média (sans Cloudinary)
+uploads/

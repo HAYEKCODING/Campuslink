@@ -1,5 +1,10 @@
-import { api } from "../lib/api";
-import { FACULTIES, INTERESTS, NEIGHBORHOODS, UNIVERSITIES } from "../lib/referenceData";
+import { api, resolveMediaUrl } from "../lib/api";
+import {
+  getUniversities,
+  getFaculties,
+  getNeighborhoods,
+  getInterests,
+} from "./referenceService";
 
 /**
  * Service profils — aligné sur le backend réel (module Profile).
@@ -21,10 +26,12 @@ import { FACULTIES, INTERESTS, NEIGHBORHOODS, UNIVERSITIES } from "../lib/refere
 export function normalizeProfile(raw) {
   if (!raw) return raw;
   const name = [raw.firstName, raw.lastName].filter(Boolean).join(" ");
+  const avatarUrl = resolveMediaUrl(raw.avatarUrl || raw.photo || null);
   return {
     ...raw,
+    avatarUrl,
     name: name || raw.name || null,
-    photo: raw.avatarUrl || raw.photo || null,
+    photo: avatarUrl,
     faculty: raw.fieldOfStudy ?? null,
     about: raw.bio ?? null,
     interests: Array.isArray(raw.interests) ? raw.interests : [],
@@ -60,23 +67,11 @@ export async function getCurrentUser() {
   };
 }
 
-// ===================== Référentiels (listes locales) =====================
+// ===================== Référentiels (GET /reference/*, fallback local) =====================
+// Délégués à referenceService : les listes viennent de la base quand le
+// backend les expose, et de lib/referenceData.js sinon.
 
-export function getUniversities() {
-  return Promise.resolve(UNIVERSITIES);
-}
-
-export function getFaculties() {
-  return Promise.resolve(FACULTIES);
-}
-
-export function getNeighborhoods() {
-  return Promise.resolve(NEIGHBORHOODS);
-}
-
-export function getInterests() {
-  return Promise.resolve(INTERESTS);
-}
+export { getUniversities, getFaculties, getNeighborhoods, getInterests };
 
 // ===================== Médias =====================
 
@@ -106,6 +101,8 @@ export async function uploadAvatar(file) {
 
 const GENDER_TO_API = { Homme: "MALE", Femme: "FEMALE", Autre: "OTHER" };
 
+const LEVEL_TO_API = { Licence: "LICENCE", Master: "MASTER", Doctorat: "DOCTORAT" };
+
 /**
  * PUT /profiles/me remplace intégralement le profil (pas de PATCH côté
  * backend) : on relit le profil courant, on fusionne les champs modifiés puis
@@ -113,8 +110,8 @@ const GENDER_TO_API = { Homme: "MALE", Femme: "FEMALE", Autre: "OTHER" };
  *
  * Seuls les champs réellement persistés par `ProfileRequest` sont envoyés :
  * `faculty -> fieldOfStudy`, `about -> bio`, `birthDate -> dateOfBirth`,
- * `gender` traduit vers l'enum `Gender`. Le "niveau d'étude" n'a pas d'équivalent
- * en base et n'est donc pas envoyé (voir API_CONTRACT.md).
+ * `gender` traduit vers l'enum `Gender`, `level` vers l'enum `StudyLevel`
+ * (LICENCE/MASTER/DOCTORAT).
  */
 export async function updateProfile(partialData) {
   const current = await getMyProfile().catch(() => ({}));
@@ -124,11 +121,21 @@ export async function updateProfile(partialData) {
       ? current.gender
       : GENDER_TO_API[partialData.gender] ?? partialData.gender;
 
+  // Niveau d'étude : accepté en label français (« Licence ») ou en enum
+  // (« LICENCE ») ; null/indéfini = valeur courante conservée.
+  const level =
+    partialData.level === undefined
+      ? current.level ?? null
+      : partialData.level === null
+        ? null
+        : LEVEL_TO_API[partialData.level] ?? partialData.level;
+
   const merged = {
     avatarUrl: partialData.photo ?? partialData.avatarUrl ?? current.avatarUrl ?? null,
     firstName: current.firstName,
     lastName: current.lastName,
     gender,
+    level,
     dateOfBirth: partialData.birthDate ?? partialData.dateOfBirth ?? current.dateOfBirth ?? null,
     university: partialData.university ?? current.university ?? null,
     fieldOfStudy: partialData.faculty ?? partialData.fieldOfStudy ?? current.fieldOfStudy ?? null,

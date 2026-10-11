@@ -1,6 +1,7 @@
 package com.campuslink.dto.response;
 
 import com.campuslink.enums.Gender;
+import com.campuslink.enums.StudyLevel;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -40,6 +41,7 @@ public class ProfileResponse {
     private String lastName;
     private Integer age;
     private Gender gender;
+    private StudyLevel level;
     private String university;
     private String fieldOfStudy;
     private String neighborhood;

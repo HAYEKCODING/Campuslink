@@ -1,15 +1,16 @@
-import { api } from "../lib/api";
+import { api, resolveMediaUrl } from "../lib/api";
 
 /**
  * Service recherche — GET /profiles/search (backend réel).
  *
  * Paramètres réellement supportés par le backend :
- *   minAge, maxAge, university, fieldOfStudy, neighborhood, city, interests[]
- * (recherche partielle insensible à la casse pour les chaînes).
+ *   minAge, maxAge, gender, university, fieldOfStudy, neighborhood, city, interests[]
+ * (recherche partielle insensible à la casse pour les chaînes, égalité stricte
+ * pour le genre).
  *
  * `interests` est répété (`?interests=Football&interests=Musique`) et signifie
- * "au moins un de ces centres d'intérêt". Le genre n'est pas supporté par
- * l'endpoint de recherche et n'est donc pas envoyé.
+ * "au moins un de ces centres d'intérêt". `gender` est l'enum Gender
+ * (MALE/FEMALE/OTHER/PREFER_NOT_TO_SAY) ; vide/absent = tous les genres.
  */
 export async function searchProfiles(filters = {}) {
   const params = new URLSearchParams();
@@ -30,7 +31,7 @@ export async function searchProfiles(filters = {}) {
   return (page?.content ?? []).map((profile) => ({
     ...profile,
     name: [profile.firstName, profile.lastName].filter(Boolean).join(" "),
-    photo: profile.avatarUrl || null,
+    photo: resolveMediaUrl(profile.avatarUrl) || null,
     faculty: profile.fieldOfStudy ?? null,
   }));
 }

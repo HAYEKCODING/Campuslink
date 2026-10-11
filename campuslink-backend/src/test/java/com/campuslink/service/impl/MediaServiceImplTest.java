@@ -1,20 +1,27 @@
 package com.campuslink.service.impl;
 
+import com.campuslink.config.CloudinaryProperties;
 import com.campuslink.config.MediaProperties;
 import com.campuslink.dto.response.MediaResponse;
 import com.campuslink.exception.BadRequestException;
 import com.campuslink.exception.MediaUploadException;
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 
@@ -42,6 +49,7 @@ class MediaServiceImplTest {
     private Uploader uploader;
 
     private MediaProperties mediaProperties;
+    private CloudinaryProperties cloudinaryProperties;
     private MediaServiceImpl mediaService;
 
     @BeforeEach
@@ -53,7 +61,36 @@ class MediaServiceImplTest {
         mediaProperties.setQuality("auto:good");
         mediaProperties.setMaxDimension(1080);
 
-        mediaService = new MediaServiceImpl(cloudinary, mediaProperties);
+        // Credentials renseignés = mode Cloudinary (chemin par défaut des tests).
+        cloudinaryProperties = new CloudinaryProperties();
+        cloudinaryProperties.setCloudName("campuslink");
+        cloudinaryProperties.setApiKey("api-key");
+        cloudinaryProperties.setApiSecret("api-secret");
+
+        mediaService = new MediaServiceImpl(cloudinary, cloudinaryProperties, mediaProperties);
+    }
+
+    @AfterEach
+    void resetRequestContext() {
+        RequestContextHolder.resetRequestAttributes();
+    }
+
+    /** Service en mode local (aucun credential Cloudinary) avec dossier dédié. */
+    private MediaServiceImpl localMediaService(Path tempDir) {
+        CloudinaryProperties empty = new CloudinaryProperties();
+        MediaProperties props = new MediaProperties();
+        props.setFolder("campuslink-test");
+        props.setMaxFileSizeBytes(5_242_880);
+        props.setAllowedContentTypes(List.of("image/jpeg", "image/png", "image/webp"));
+        props.setQuality("auto:good");
+        props.setMaxDimension(1080);
+        props.setLocalDir(tempDir.toString());
+        return new MediaServiceImpl(cloudinary, empty, props);
+    }
+
+    private void mockRequestContext() {
+        RequestContextHolder.setRequestAttributes(
+                new ServletRequestAttributes(new MockHttpServletRequest("POST", "/api/media/upload")));
     }
 
     private MockMultipartFile validFile() {
@@ -215,6 +252,90 @@ class MediaServiceImplTest {
             mediaService.replace(null, validFile());
 
             verify(uploader, never()).destroy(any(), any());
+        }
+    }
+
+    // ===================== mode local (sans Cloudinary) =====================
+
+    @Nested
+    class LocalFallback {
+
+        @Test
+        void shouldStoreFileLocally_whenCloudinaryNotConfigured() throws IOException {
+            mockRequestContext();
+
+            MediaResponse response = localMediaService(java.nio.file.Path.of("target", "uploads-test"))
+                    .upload(validFile());
+
+            assertThat(response.getPublicId()).endsWith(".jpg");
+            assertThat(response.getUrl()).contains("/media/files/" + response.getPublicId());
+            assertThat(response.getBytes()).isEqualTo(validFile().getSize());
+        }
+
+        @Test
+        void shouldWriteFileToDisk_whenCloudinaryNotConfigured(@org.junit.jupiter.api.io.TempDir Path tempDir)
+                throws IOException {
+            mockRequestContext();
+
+            MediaResponse response = localMediaService(tempDir).upload(validFile());
+
+            assertThat(Files.exists(tempDir.resolve(response.getPublicId()))).isTrue();
+        }
+
+        @Test
+        void shouldThrowBadRequest_whenFileInvalid_evenWithoutCloudinary(
+                @org.junit.jupiter.api.io.TempDir Path tempDir) {
+            MockMultipartFile invalid = new MockMultipartFile(
+                    "file", "document.pdf", "application/pdf", "contenu".getBytes());
+
+            assertThatThrownBy(() -> localMediaService(tempDir).upload(invalid))
+                    .isInstanceOf(BadRequestException.class);
+        }
+
+        @Test
+        void shouldDeleteFile_andStayIdempotent_whenCloudinaryNotConfigured(
+                @org.junit.jupiter.api.io.TempDir Path tempDir) throws IOException {
+            Files.write(tempDir.resolve("a.jpg"), "image".getBytes());
+            MediaServiceImpl service = localMediaService(tempDir);
+
+            assertThatCode(() -> service.delete("a.jpg")).doesNotThrowAnyException();
+            assertThat(Files.exists(tempDir.resolve("a.jpg"))).isFalse();
+
+            // Déjà supprimé : idempotent, pas d'erreur.
+            assertThatCode(() -> service.delete("a.jpg")).doesNotThrowAnyException();
+        }
+
+        @Test
+        void shouldRefusePathTraversal_onDelete(@org.junit.jupiter.api.io.TempDir Path tempDir)
+                throws IOException {
+            Path outside = tempDir.resolve("..").resolve("outside-secret.txt").normalize();
+            Files.write(outside, "secret".getBytes());
+
+            try {
+                assertThatCode(() -> localMediaService(tempDir).delete("../outside-secret.txt"))
+                        .doesNotThrowAnyException();
+                assertThat(Files.exists(outside)).isTrue();
+            } finally {
+                Files.deleteIfExists(outside);
+            }
+        }
+
+        @Test
+        void shouldFindLocalFile_whenExists(@org.junit.jupiter.api.io.TempDir Path tempDir)
+                throws IOException {
+            Files.write(tempDir.resolve("b.png"), "image".getBytes());
+
+            assertThat(localMediaService(tempDir).findLocalFile("b.png")).isPresent();
+        }
+
+        @Test
+        void shouldReturnEmpty_whenFileMissingOrNameInvalid(@org.junit.jupiter.api.io.TempDir Path tempDir) {
+            MediaServiceImpl service = localMediaService(tempDir);
+
+            assertThat(service.findLocalFile("missing.png")).isEmpty();
+            assertThat(service.findLocalFile("../pom.xml")).isEmpty();
+            assertThat(service.findLocalFile("sub/dir.png")).isEmpty();
+            assertThat(service.findLocalFile("/etc/passwd")).isEmpty();
         }
     }
 

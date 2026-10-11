@@ -342,6 +342,30 @@ class ProfileControllerTest {
     }
 
     @Test
+    void search_shouldExcludeCurrentUser_whenAuthenticated() throws Exception {
+        Page<ProfileResponse> emptyPage = new PageImpl<>(List.of());
+        when(profileSearchService.search(any(), any())).thenReturn(emptyPage);
+
+        mockMvc.perform(get("/profiles/search").with(authenticated()))
+                .andExpect(status().isOk());
+
+        verify(profileSearchService).search(
+                argThat(criteria -> USER_ID.equals(criteria.getExcludedUserId())), any());
+    }
+
+    @Test
+    void search_shouldNotExcludeAnyone_whenAnonymous() throws Exception {
+        Page<ProfileResponse> emptyPage = new PageImpl<>(List.of());
+        when(profileSearchService.search(any(), any())).thenReturn(emptyPage);
+
+        mockMvc.perform(get("/profiles/search"))
+                .andExpect(status().isOk());
+
+        verify(profileSearchService).search(
+                argThat(criteria -> criteria.getExcludedUserId() == null), any());
+    }
+
+    @Test
     void search_shouldPassSortParameter_toService() throws Exception {
         Page<ProfileResponse> emptyPage = new PageImpl<>(List.of());
         when(profileSearchService.search(any(), any())).thenReturn(emptyPage);

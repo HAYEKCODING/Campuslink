@@ -24,6 +24,16 @@ public final class SecurityConstants {
             "/otp/**",
             "/profiles/*/public",
             "/profiles/search",
+            // Contenu public de la landing (PublicContentController) :
+            // visiteur anonyme affiche la page d'accueil sans être redirigé
+            // vers /connexion (les 401 déclenchent une déconnexion côté client).
+            "/stats/public",
+            "/testimonials",
+            "/contact",
+            "/reference/**",
+            // Fichiers du stockage local de repli (avatars) : doivent s'afficher
+            // sur la landing et les profils consultés en navigation anonyme.
+            "/media/files/**",
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",

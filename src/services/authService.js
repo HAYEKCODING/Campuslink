@@ -28,11 +28,15 @@ export async function signup({ fullName, firstName, email, password, confirmPass
 export async function login({ email, password }) {
   const data = await api.post("/auth/login", { email, password });
   setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+  // Ouvre la connexion temps réel (écouteur RealtimeSession dans App.jsx).
+  window.dispatchEvent(new CustomEvent("campuslink:authenticated"));
   return data;
 }
 
 export function logout() {
   setAuthTokens({});
+  // Ferme la connexion STOMP : plus de session, plus d'écoute privée.
+  window.dispatchEvent(new CustomEvent("campuslink:logged-out"));
 }
 
 // Déconnexion volontaire : révoque aussi le refresh token côté serveur
@@ -50,6 +54,16 @@ export async function logoutRemote() {
 
 export function requestPasswordReset(email) {
   return api.post("/auth/forgot-password", { email });
+}
+
+// POST /auth/reset-password — consomme le jeton du lien reçu par email et
+// définit le nouveau mot de passe (la confirmation est exigée par le DTO).
+export function resetPassword(token, newPassword, confirmPassword) {
+  return api.post("/auth/reset-password", {
+    token,
+    newPassword,
+    confirmPassword: confirmPassword ?? newPassword,
+  });
 }
 
 export { isAuthenticated };

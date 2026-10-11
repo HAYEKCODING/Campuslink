@@ -3,6 +3,7 @@ package com.campuslink.specification;
 import com.campuslink.dto.request.ProfileSearchCriteria;
 import com.campuslink.entity.Profile;
 import com.campuslink.entity.User;
+import com.campuslink.enums.Gender;
 import com.campuslink.repository.ProfileRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,6 +86,34 @@ class ProfileSpecificationIntegrationTest {
     }
 
     @Test
+    void shouldExcludeCurrentUserProfile_whenExcludedUserIdProvided() {
+        Profile awa = persistProfile("Awa", 20, "UFHB", "Bouake");
+        persistProfile("Moussa", 22, "UFHB", "Bouake");
+        entityManager.flush();
+
+        ProfileSearchCriteria criteria = ProfileSearchCriteria.builder()
+                .excludedUserId(awa.getUser().getId())
+                .build();
+        List<Profile> results = profileRepository.findAll(ProfileSpecification.withCriteria(criteria));
+
+        // Le profil de l'utilisateur courant ne figure pas dans les résultats
+        // (feed de découverte / recherche : on ne se voit pas soi-même).
+        assertThat(results).extracting(Profile::getFirstName).containsExactly("Moussa");
+    }
+
+    @Test
+    void shouldIncludeAllProfiles_whenExcludedUserIdIsNull() {
+        persistProfile("Awa", 20, "UFHB", "Bouake");
+        persistProfile("Moussa", 22, "UFHB", "Bouake");
+        entityManager.flush();
+
+        ProfileSearchCriteria criteria = ProfileSearchCriteria.builder().excludedUserId(null).build();
+        List<Profile> results = profileRepository.findAll(ProfileSpecification.withCriteria(criteria));
+
+        assertThat(results).hasSize(2);
+    }
+
+    @Test
     void shouldFilterByMinAgeOnly() {
         persistProfile("Awa", 18, "UFHB", "Bouake");
         persistProfile("Moussa", 25, "UFHB", "Bouake");
@@ -148,6 +177,48 @@ class ProfileSpecificationIntegrationTest {
         List<Profile> results = profileRepository.findAll(ProfileSpecification.withCriteria(criteria));
 
         assertThat(results).hasSize(1);
+    }
+
+    @Test
+    void shouldFilterByGender() {
+        persistProfile("Awa", 20, "UFHB", "Bouake").setGender(Gender.FEMALE);
+        persistProfile("Moussa", 22, "UFHB", "Bouake").setGender(Gender.MALE);
+        persistProfile("Fatou", 24, "UFHB", "Bouake").setGender(Gender.FEMALE);
+        entityManager.flush();
+
+        ProfileSearchCriteria criteria = ProfileSearchCriteria.builder().gender(Gender.FEMALE).build();
+        List<Profile> results = profileRepository.findAll(ProfileSpecification.withCriteria(criteria));
+
+        assertThat(results).extracting(Profile::getFirstName).containsExactlyInAnyOrder("Awa", "Fatou");
+    }
+
+    @Test
+    void shouldReturnAllProfiles_whenGenderIsNull() {
+        // gender null = critère absent : aucun filtre appliqué (y compris
+        // pour les profils dont le genre est eux-mêmes null).
+        persistProfile("Awa", 20, "UFHB", "Bouake");
+        persistProfile("Moussa", 22, "UFHB", "Bouake").setGender(Gender.MALE);
+        entityManager.flush();
+
+        ProfileSearchCriteria criteria = ProfileSearchCriteria.builder().build();
+        List<Profile> results = profileRepository.findAll(ProfileSpecification.withCriteria(criteria));
+
+        assertThat(results).hasSize(2);
+    }
+
+    @Test
+    void shouldCombineGenderWithOtherFilters() {
+        persistProfile("Awa", 20, "UFHB", "Bouake").setGender(Gender.FEMALE);
+        persistProfile("Fatou", 24, "INP-HB", "Yamoussoukro").setGender(Gender.FEMALE);
+        entityManager.flush();
+
+        ProfileSearchCriteria criteria = ProfileSearchCriteria.builder()
+                .gender(Gender.FEMALE)
+                .city("Bouake")
+                .build();
+        List<Profile> results = profileRepository.findAll(ProfileSpecification.withCriteria(criteria));
+
+        assertThat(results).extracting(Profile::getFirstName).containsExactly("Awa");
     }
 
     @Test

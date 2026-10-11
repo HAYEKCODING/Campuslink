@@ -29,6 +29,11 @@ spring:
 application:
   jwt:
     secret: ${JWT_SECRET}
+  mail:
+    # Forcé à false ici, quel que soit MAIL_LOG_ONLY : en production les emails
+    # (OTP, réinitialisation) doivent réellement partir — un mode log-only
+    # casserait silencieusement ces fonctionnalités.
+    log-only: false
 
 # Render est derrière un proxy HTTPS : nécessaire pour que Spring détecte
 # correctement le schéma (https) et l'hôte d'origine des requêtes.
@@ -42,4 +47,12 @@ logging:
     com.campuslink: INFO
     org.hibernate.SQL: WARN
     org.springframework.security: WARN
+
+# Swagger / OpenAPI désactivés en production : inutile d'exposer la carte
+# complète de l'API (/v3/api-docs, /swagger-ui) aux visiteurs anonymes.
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
 

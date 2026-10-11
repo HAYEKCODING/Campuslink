@@ -1,6 +1,7 @@
 package com.campuslink.entity;
 
 import com.campuslink.enums.Gender;
+import com.campuslink.enums.StudyLevel;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -85,6 +86,16 @@ public class Profile extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "gender", length = 30)
     private Gender gender;
+
+    /**
+     * Niveau d'étude (Licence / Master / Doctorat) — collecté à l'onboarding
+     * (étape 1). Colonne ajoutée après coup : {@code ddl-auto: update} la
+     * crée automatiquement sur les bases existantes, {@code database/schema.sql}
+     * l'inclut pour les installations neuves.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "level", length = 20)
+    private StudyLevel level;
 
     @Size(max = 1000, message = "La bio ne doit pas dépasser 1000 caractères.")
     @Column(name = "bio", length = 1000)

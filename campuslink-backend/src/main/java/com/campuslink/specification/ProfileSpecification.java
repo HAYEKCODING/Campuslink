@@ -55,6 +55,11 @@ public final class ProfileSpecification {
                         root.get("dateOfBirth"), earliestBirthDateForMaxAge));
             }
 
+            // ===================== Genre (égalité stricte sur l'enum) =====================
+            if (criteria.getGender() != null) {
+                predicates.add(criteriaBuilder.equal(root.get("gender"), criteria.getGender()));
+            }
+
             // ===================== Champs texte libres (contient, insensible à la casse) =====================
             addContainsPredicate(predicates, criteriaBuilder, root.get("university"), criteria.getUniversity());
             addContainsPredicate(predicates, criteriaBuilder, root.get("fieldOfStudy"), criteria.getFieldOfStudy());
@@ -77,6 +82,15 @@ public final class ProfileSpecification {
                     Join<Profile, String> interestsJoin = root.join("interests", JoinType.INNER);
                     predicates.add(criteriaBuilder.lower(interestsJoin).in(normalizedInterests));
                 }
+            }
+
+            // ===================== Exclusion de l'utilisateur courant =====================
+            // Le profil de l'appelant authentifié ne fait pas partie des
+            // résultats (feed de découverte, recherche) : on ne se voit pas soi-
+            // même et on ne peut pas se liker.
+            if (criteria.getExcludedUserId() != null) {
+                predicates.add(criteriaBuilder.notEqual(
+                        root.get("user").get("id"), criteria.getExcludedUserId()));
             }
 
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));

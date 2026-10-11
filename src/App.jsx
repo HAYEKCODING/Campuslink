@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-route
 import CampusLinkLanding from "./CampusLinkLanding";
 import CampusLinkSignup from "./CampusLinkSignup";
 import CampusLinkLogin from "./CampusLinkLogin";
+import ResetPasswordPage from "./ResetPasswordPage";
 import OnboardingStep1 from "./OnboardingStep1";
 import OnboardingStep2 from "./OnboardingStep2";
 import OnboardingStep3 from "./OnboardingStep3";
@@ -15,6 +16,7 @@ import ChatConversation from "./ChatConversation";
 import MyMatches from "./MyMatches";
 import Settings from "./Settings";
 import { isAuthenticated, logout } from "./services/authService";
+import { getRealtimeClient } from "./lib/realtime";
 
 /**
  * CampusLink — Routeur principal
@@ -23,6 +25,7 @@ import { isAuthenticated, logout } from "./services/authService";
  * /                     -> Landing page
  * /inscription          -> Créer un compte
  * /connexion            -> Se connecter
+ * /reset-password       -> Réinitialiser le mot de passe (lien email)
  * /onboarding/1|2|3      -> Complétez votre profil (3 étapes)
  * /app                  -> Fil de découverte (Accueil)
  * /app/recherche        -> Recherche & filtres
@@ -50,6 +53,7 @@ function UnauthorizedListener() {
   useEffect(() => {
     const handleUnauthorized = () => {
       logout();
+      getRealtimeClient().deactivate();
       navigate("/connexion", { replace: true });
     };
     window.addEventListener("campuslink:unauthorized", handleUnauthorized);
@@ -59,15 +63,42 @@ function UnauthorizedListener() {
   return null;
 }
 
+/**
+ * Ouvre (ou referme) la connexion STOMP temps réel selon l'état de session.
+ * Singleton géré par lib/realtime.js : pas de connexion tant qu'il n'y a
+ * aucun token, déconnexion à la déconnexion / expiration de session.
+ */
+function RealtimeSession() {
+  useEffect(() => {
+    const rt = getRealtimeClient();
+    if (isAuthenticated()) rt.connect();
+
+    const handleLogin = () => rt.connect();
+    const handleLogout = () => rt.deactivate();
+    // Émis par authService après stockage (login) ou purge (logout) des tokens.
+    window.addEventListener("campuslink:authenticated", handleLogin);
+    window.addEventListener("campuslink:logged-out", handleLogout);
+    return () => {
+      window.removeEventListener("campuslink:authenticated", handleLogin);
+      window.removeEventListener("campuslink:logged-out", handleLogout);
+      rt.deactivate();
+    };
+  }, []);
+
+  return null;
+}
+
 export default function App() {
   return (
     <BrowserRouter>
       <UnauthorizedListener />
+      <RealtimeSession />
       <Routes>
         {/* Public */}
         <Route path="/" element={<CampusLinkLanding />} />
         <Route path="/inscription" element={<CampusLinkSignup />} />
         <Route path="/connexion" element={<CampusLinkLogin />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Onboarding */}
         <Route path="/onboarding/1" element={<RequireAuth><OnboardingStep1 /></RequireAuth>} />

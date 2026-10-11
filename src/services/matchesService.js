@@ -1,4 +1,4 @@
-import { api } from "../lib/api";
+import { api, resolveMediaUrl } from "../lib/api";
 
 /**
  * Service matchs — GET /matches (matchs actifs de l'utilisateur connecté).
@@ -11,5 +11,12 @@ import { api } from "../lib/api";
  * `autreUtilisateurId` est l'identifiant du module temps réel (likes/messages).
  */
 export function getMatches() {
-  return api.get("/matches");
+  return api.get("/matches").then((matches) =>
+    (matches || []).map((match) => ({
+      ...match,
+      // Recadre l'URL de photo sur l'origine API courante (les URLs sont
+      // persistées en base au moment de l'upload — voir resolveMediaUrl).
+      autreUtilisateurPhoto: resolveMediaUrl(match.autreUtilisateurPhoto) || null,
+    }))
+  );
 }

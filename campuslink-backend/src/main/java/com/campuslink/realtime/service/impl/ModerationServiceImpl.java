@@ -3,9 +3,11 @@ package com.campuslink.realtime.service.impl;
 import com.campuslink.realtime.dto.request.ModerationActionRequest;
 import com.campuslink.realtime.entity.ModerationLog;
 import com.campuslink.realtime.entity.enums.ModerationActionType;
+import com.campuslink.exception.ResourceNotFoundException;
 import com.campuslink.realtime.integration.UserModerationPort;
 import com.campuslink.realtime.repository.ModerationLogRepository;
 import com.campuslink.realtime.service.ModerationService;
+import com.campuslink.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,7 @@ public class ModerationServiceImpl implements ModerationService {
 
     private final ModerationLogRepository moderationLogRepository;
     private final UserModerationPort userModerationPort;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
@@ -64,6 +67,14 @@ public class ModerationServiceImpl implements ModerationService {
     }
 
     private ModerationLog logger(Long moderateurId, ModerationActionRequest request, ModerationActionType action) {
+        // La cible doit exister : sinon l'insertion violerait la contrainte FK
+        // fk_moderation_logs_utilisateur_cible en base → 500 au lieu d'un 404
+        // (le port couvre déjà suspendre/bannir via getUserOrThrow, mais
+        // l'avertissement n'y passe pas).
+        if (!userRepository.existsByLegacyId(request.getUtilisateurCibleId())) {
+            throw new ResourceNotFoundException("Profil", "utilisateurCibleId", request.getUtilisateurCibleId());
+        }
+
         ModerationLog log = ModerationLog.builder()
                 .utilisateurCibleId(request.getUtilisateurCibleId())
                 .moderateurId(moderateurId)
