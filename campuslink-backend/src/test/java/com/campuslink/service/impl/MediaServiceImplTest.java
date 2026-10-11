@@ -6,6 +6,7 @@ import com.campuslink.dto.response.MediaResponse;
 import com.campuslink.exception.BadRequestException;
 import com.campuslink.exception.MediaUploadException;
 import com.cloudinary.Cloudinary;
+import com.cloudinary.Transformation;
 import com.cloudinary.Uploader;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -140,10 +141,15 @@ class MediaServiceImplTest {
                     return false;
                 }
                 Object transformation = map.get("transformation");
-                return transformation instanceof Map<?, ?> transformationMap
-                        && "auto:good".equals(transformationMap.get("quality"))
-                        && "auto".equals(transformationMap.get("fetch_format"))
-                        && "limit".equals(transformationMap.get("crop"));
+                if (!(transformation instanceof Transformation cloudinaryTransformation)) {
+                    return false;
+                }
+                String generated = cloudinaryTransformation.generate();
+                return generated.contains("q_auto:good")
+                        && generated.contains("f_auto")
+                        && generated.contains("w_1080")
+                        && generated.contains("h_1080")
+                        && generated.contains("c_limit");
             }));
         }
 

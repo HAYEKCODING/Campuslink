@@ -7,6 +7,7 @@ import com.campuslink.exception.MediaUploadException;
 import com.campuslink.service.MediaService;
 import com.campuslink.util.MediaFileValidator;
 import com.cloudinary.Cloudinary;
+import com.cloudinary.Transformation;
 import com.cloudinary.utils.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -230,13 +231,12 @@ public class MediaServiceImpl implements MediaService {
      * et transformation de compression/redimensionnement appliquée à l'entrée.
      */
     private Map<String, Object> buildUploadOptions() {
-        Map<String, Object> transformation = ObjectUtils.asMap(
-                "quality", mediaProperties.getQuality(),
-                "fetch_format", "auto",
-                "width", mediaProperties.getMaxDimension(),
-                "height", mediaProperties.getMaxDimension(),
-                "crop", "limit"
-        );
+        Transformation transformation = new Transformation()
+                .quality(mediaProperties.getQuality())
+                .fetchFormat("auto")
+                .width(mediaProperties.getMaxDimension())
+                .height(mediaProperties.getMaxDimension())
+                .crop("limit");
 
         return ObjectUtils.asMap(
                 "folder", mediaProperties.getFolder(),
