@@ -4,23 +4,30 @@ import com.campuslink.dto.request.LoginRequest;
 import com.campuslink.dto.request.RefreshTokenRequest;
 import com.campuslink.dto.request.RegisterRequest;
 import com.campuslink.dto.response.AuthResponse;
+import com.campuslink.dto.response.OAuthLoginResult;
 import com.campuslink.dto.response.UserResponse;
 import com.campuslink.entity.Profile;
+import com.campuslink.entity.OAuthIdentity;
 import com.campuslink.entity.RefreshToken;
 import com.campuslink.entity.Role;
 import com.campuslink.entity.User;
+import com.campuslink.exception.BadRequestException;
 import com.campuslink.enums.OtpType;
+import com.campuslink.enums.AccountStatus;
+import com.campuslink.enums.Gender;
 import com.campuslink.enums.RoleName;
 import com.campuslink.exception.DuplicateResourceException;
 import com.campuslink.exception.UnauthorizedException;
 import com.campuslink.mapper.UserMapper;
 import com.campuslink.repository.RefreshTokenRepository;
+import com.campuslink.repository.OAuthIdentityRepository;
 import com.campuslink.repository.RoleRepository;
 import com.campuslink.repository.UserRepository;
 import com.campuslink.security.JwtService;
 import com.campuslink.security.UserPrincipal;
 import com.campuslink.service.AuthService;
 import com.campuslink.service.OtpService;
+import com.campuslink.util.EmailMasker;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -56,10 +63,16 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final UserMapper userMapper;
     private final OtpService otpService;
+    private final OAuthIdentityRepository oauthIdentityRepository;
 
     @Override
     @Transactional
     public UserResponse register(RegisterRequest request) {
+        if (request.getGender() != null
+                && request.getGender() != Gender.MALE
+                && request.getGender() != Gender.FEMALE) {
+            throw new BadRequestException("Le genre doit être Homme ou Femme.");
+        }
         String email = normalizeEmail(request.getEmail());
 
         if (userRepository.existsByEmail(email)) {
@@ -79,11 +92,12 @@ public class AuthServiceImpl implements AuthService {
         Profile profile = Profile.builder()
                 .firstName(request.getFirstName().trim())
                 .lastName(request.getLastName().trim())
+                .gender(request.getGender())
                 .build();
         user.setProfile(profile);
 
         User savedUser = userRepository.save(user);
-        log.info("Nouveau compte créé : {}", savedUser.getEmail());
+        log.info("Nouveau compte créé : {}", EmailMasker.mask(savedUser.getEmail()));
 
         // generateAndSend() est annotée REQUIRES_NEW côté OtpServiceImpl : un échec
         // d'envoi d'email (SMTP injoignable, etc.) tourne dans sa propre transaction
@@ -93,7 +107,7 @@ public class AuthServiceImpl implements AuthService {
             otpService.generateAndSend(savedUser.getEmail(), OtpType.EMAIL_VERIFICATION);
         } catch (Exception ex) {
             log.warn("Échec de l'envoi de l'email de vérification pour {} : {}",
-                    savedUser.getEmail(), ex.getMessage());
+                    EmailMasker.mask(savedUser.getEmail()), ex.getMessage());
         }
 
         return userMapper.toUserResponse(savedUser);
@@ -117,8 +131,77 @@ public class AuthServiceImpl implements AuthService {
         user.setLastLoginAt(Instant.now());
         userRepository.save(user);
 
-        log.info("Connexion réussie : {}", email);
+        log.info("Connexion réussie : {}", EmailMasker.mask(email));
         return issueTokens(principal);
+    }
+
+    @Override
+    @Transactional
+    public OAuthLoginResult loginWithOAuth(
+            String provider, String providerUserId, String email,
+            String firstName, String lastName, boolean emailVerified) {
+        String normalizedProvider = provider.trim().toLowerCase();
+        if (!normalizedProvider.equals("google") && !normalizedProvider.equals("facebook")) {
+            throw new BadRequestException("Fournisseur OAuth non pris en charge.");
+        }
+        if (providerUserId == null || providerUserId.isBlank()) {
+            throw new UnauthorizedException("Le fournisseur n'a pas retourné d'identifiant valide.");
+        }
+
+        OAuthIdentity identity = oauthIdentityRepository
+                .findByProviderAndProviderUserId(normalizedProvider, providerUserId)
+                .orElse(null);
+        User user;
+        boolean newAccount = false;
+
+        if (identity != null) {
+            user = identity.getUser();
+        } else {
+            if (!emailVerified || email == null || email.isBlank()) {
+                throw new UnauthorizedException("Le fournisseur doit confirmer votre adresse email.");
+            }
+            String normalizedEmail = normalizeEmail(email);
+            if (userRepository.existsByEmail(normalizedEmail)) {
+                throw new DuplicateResourceException(
+                        "Cette adresse est déjà utilisée. Pour des raisons de sécurité, connectez-vous avec la méthode d'origine.");
+            }
+            if (firstName == null || firstName.isBlank() || lastName == null || lastName.isBlank()) {
+                throw new UnauthorizedException("Le fournisseur n'a pas retourné votre nom complet.");
+            }
+
+            Role studentRole = roleRepository.findByName(RoleName.STUDENT)
+                    .orElseThrow(() -> new IllegalStateException(
+                            "Rôle STUDENT introuvable en base — vérifier le script de seed."));
+            user = User.builder()
+                    .email(normalizedEmail)
+                    .password(passwordEncoder.encode(UUID.randomUUID().toString()))
+                    .status(AccountStatus.ACTIVE)
+                    .emailVerified(true)
+                    .lastLoginAt(Instant.now())
+                    .build();
+            user.addRole(studentRole);
+            user.setProfile(Profile.builder()
+                    .firstName(firstName.trim())
+                    .lastName(lastName.trim())
+                    .build());
+            user = userRepository.save(user);
+            oauthIdentityRepository.save(OAuthIdentity.builder()
+                    .provider(normalizedProvider)
+                    .providerUserId(providerUserId)
+                    .user(user)
+                    .build());
+            newAccount = true;
+        }
+
+        if (user.getStatus() != AccountStatus.ACTIVE || !user.isEmailVerified()) {
+            throw new UnauthorizedException("Ce compte ne peut pas être utilisé pour le moment.");
+        }
+        user.setLastLoginAt(Instant.now());
+        userRepository.save(user);
+        return OAuthLoginResult.builder()
+                .authResponse(issueTokens(new UserPrincipal(user)))
+                .newAccount(newAccount)
+                .build();
     }
 
     @Override
@@ -154,7 +237,7 @@ public class AuthServiceImpl implements AuthService {
         storedToken.setRevoked(true);
         refreshTokenRepository.save(storedToken);
 
-        log.info("Rafraîchissement de token pour : {}", email);
+        log.info("Rafraîchissement de token pour : {}", EmailMasker.mask(email));
         return issueTokens(new UserPrincipal(user));
     }
 

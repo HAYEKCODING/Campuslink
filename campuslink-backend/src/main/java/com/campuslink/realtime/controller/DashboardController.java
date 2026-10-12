@@ -21,6 +21,7 @@ public class DashboardController {
     private final DashboardService dashboardService;
 
     @GetMapping
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     @Operation(summary = "Statistiques globales pour le tableau de bord admin")
     public ResponseEntity<DashboardStatsResponse> getStatistiques() {
         return ResponseEntity.ok(dashboardService.getStatistiques());

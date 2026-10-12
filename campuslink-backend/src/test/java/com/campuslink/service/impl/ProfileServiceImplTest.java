@@ -4,6 +4,8 @@ import com.campuslink.dto.request.ProfileRequest;
 import com.campuslink.dto.response.ProfileResponse;
 import com.campuslink.entity.Profile;
 import com.campuslink.entity.User;
+import com.campuslink.enums.Gender;
+import com.campuslink.exception.BadRequestException;
 import com.campuslink.exception.DuplicateResourceException;
 import com.campuslink.exception.ResourceNotFoundException;
 import com.campuslink.mapper.ProfileMapper;
@@ -80,6 +82,19 @@ class ProfileServiceImplTest {
         }
 
         @Test
+        void shouldRejectLegacyGenderForNewProfile() {
+            ProfileRequest request = ProfileRequest.builder()
+                    .firstName("Awa")
+                    .lastName("Kone")
+                    .gender(Gender.OTHER)
+                    .build();
+
+            assertThatThrownBy(() -> profileService.createProfile(USER_ID, request))
+                    .isInstanceOf(BadRequestException.class);
+            verify(userRepository, never()).save(any());
+        }
+
+        @Test
         void shouldThrowDuplicateResource_whenProfileAlreadyExists() {
             User user = User.builder().email("etudiant@campuslink.io").password("hashed").build();
             user.setProfile(Profile.builder().firstName("Existant").lastName("Profil").build());
@@ -130,6 +145,26 @@ class ProfileServiceImplTest {
             assertThat(existingProfile.getInterests()).containsExactly("Lecture");
             verify(profileMapper).updateEntityFromRequest(request, existingProfile);
             verify(profileRepository).save(existingProfile);
+        }
+
+        @Test
+        void shouldPreserveInterests_whenUpdateOmitsThem() {
+            Profile existingProfile = Profile.builder()
+                    .firstName("Awa")
+                    .lastName("Kone")
+                    .interests(Set.of("Lecture", "Musique"))
+                    .build();
+            ProfileRequest request = ProfileRequest.builder()
+                    .firstName("Awa")
+                    .lastName("Kone")
+                    .build();
+            when(profileRepository.findByUserId(USER_ID)).thenReturn(Optional.of(existingProfile));
+            when(profileRepository.save(existingProfile)).thenReturn(existingProfile);
+            when(profileMapper.toProfileResponse(existingProfile)).thenReturn(ProfileResponse.builder().build());
+
+            profileService.updateProfile(USER_ID, request);
+
+            assertThat(existingProfile.getInterests()).containsExactlyInAnyOrder("Lecture", "Musique");
         }
 
         @Test
@@ -213,12 +248,27 @@ class ProfileServiceImplTest {
             Profile profile = Profile.builder().firstName("Moussa").lastName("Traoré").build();
 
             when(profileRepository.findById(profileId)).thenReturn(Optional.of(profile));
-            when(profileMapper.toProfileResponse(profile))
+            when(profileMapper.toPublicProfileResponse(profile))
                     .thenReturn(ProfileResponse.builder().firstName("Moussa").build());
 
             ProfileResponse response = profileService.getPublicProfile(profileId);
 
             assertThat(response.getFirstName()).isEqualTo("Moussa");
+        }
+
+        @Test
+        void getPublicProfile_shouldHideProfileWhenItIsNotDiscoverable() {
+            UUID profileId = UUID.randomUUID();
+            Profile profile = Profile.builder()
+                    .firstName("Moussa")
+                    .lastName("Traoré")
+                    .profileVisible(false)
+                    .build();
+            when(profileRepository.findById(profileId)).thenReturn(Optional.of(profile));
+
+            assertThatThrownBy(() -> profileService.getPublicProfile(profileId))
+                    .isInstanceOf(ResourceNotFoundException.class);
+            verify(profileMapper, never()).toPublicProfileResponse(any());
         }
 
         @Test

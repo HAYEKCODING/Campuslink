@@ -1,8 +1,13 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Heart, Search, Bell, MessageCircle, Home, User, Settings as SettingsIcon } from "lucide-react";
 import { useAsyncData } from "./hooks/useAsyncData";
 import { getCurrentUser } from "./services/profileService";
+import {
+  getUnreadNotificationCount,
+  NOTIFICATIONS_CHANGED_EVENT,
+} from "./services/settingsService";
+import { getRealtimeClient } from "./lib/realtime";
 
 /**
  * CampusLink — Layout partagé (sidebar + topbar + nav mobile)
@@ -27,7 +32,7 @@ const DEFAULT_NAV = [
   { label: "Accueil", icon: Home, to: "/app" },
   { label: "Recherche", icon: Search, to: "/app/recherche" },
   { label: "Messages", icon: MessageCircle, to: "/app/messages", badgeKey: "unreadMessages" },
-  { label: "Notifications", icon: Bell, to: "/app", badgeKey: "unreadNotifications" },
+  { label: "Notifications", icon: Bell, to: "/app/parametres?section=notifications", badgeKey: "unreadNotifications" },
   { label: "Mes matchs", icon: Heart, to: "/app/matchs" },
   { label: "Profil", icon: User, to: "/app/profil/moi" },
   { label: "Paramètres", icon: SettingsIcon, to: "/app/parametres" },
@@ -44,6 +49,28 @@ const MOBILE_NAV = [
 export default function Layout({ active = "Accueil", showSearch = true, children }) {
   const navigate = useNavigate();
   const { data: user } = useAsyncData(() => getCurrentUser(), []);
+  const { data: initialUnreadNotifications } = useAsyncData(() => getUnreadNotificationCount(), []);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+  useEffect(() => {
+    setUnreadNotifications(initialUnreadNotifications || 0);
+  }, [initialUnreadNotifications]);
+
+  useEffect(() => {
+    const refreshCount = () => {
+      getUnreadNotificationCount()
+        .then((count) => setUnreadNotifications(count || 0))
+        .catch((error) => console.error("Impossible de mettre à jour le compteur de notifications.", error));
+    };
+    const rt = getRealtimeClient();
+    const onChanged = () => refreshCount();
+    const offConnect = rt.onConnect(refreshCount);
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, onChanged);
+    return () => {
+      offConnect();
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, onChanged);
+    };
+  }, []);
 
   const handleTopbarSearch = (e) => {
     e.preventDefault();
@@ -65,7 +92,11 @@ export default function Layout({ active = "Accueil", showSearch = true, children
         <nav className="flex flex-col gap-1">
           {DEFAULT_NAV.map(({ label, icon: Icon, to, badgeKey }) => {
             const isActive = active === label;
-            const badgeValue = badgeKey ? user?.[badgeKey] : null;
+            const badgeValue = badgeKey === "unreadNotifications"
+              ? unreadNotifications
+              : badgeKey
+                ? user?.[badgeKey]
+                : null;
             return (
               <Link
                 key={label}
@@ -109,9 +140,14 @@ export default function Layout({ active = "Accueil", showSearch = true, children
           ) : (
             <div className="flex-1" />
           )}
-          <button className="relative w-9 h-9 rounded-full hover:bg-slate-50 flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => navigate("/app/parametres?section=notifications")}
+            aria-label="Ouvrir les notifications"
+            className="relative w-9 h-9 rounded-full hover:bg-slate-50 flex items-center justify-center"
+          >
             <Bell className="w-5 h-5 text-slate-500" />
-            {user?.unreadNotifications ? (
+            {unreadNotifications > 0 ? (
               <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-fuchsia-500" />
             ) : null}
           </button>

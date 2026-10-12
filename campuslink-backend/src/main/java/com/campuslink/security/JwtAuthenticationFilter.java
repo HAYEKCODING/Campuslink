@@ -1,6 +1,7 @@
 package com.campuslink.security;
 
 import com.campuslink.constant.SecurityConstants;
+import com.campuslink.util.EmailMasker;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -82,7 +83,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
             if (!jwtService.isTokenValid(token, userDetails)) {
-                log.debug("Token JWT invalide ou expiré pour l'utilisateur : {}", email);
+                log.debug("Token JWT invalide ou expiré pour l'utilisateur : {}", EmailMasker.mask(email));
                 return;
             }
 

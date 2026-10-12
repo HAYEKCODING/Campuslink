@@ -28,6 +28,12 @@ public class MediaProperties {
     private String folder;
 
     /**
+     * Dossier de stockage local de repli (mode sans Cloudinary) : créé au
+     * besoin, servi via {@code GET /media/files/{filename}}.
+     */
+    private String localDir = "uploads";
+
+    /**
      * Taille maximale acceptée pour un fichier, en octets.
      */
     private long maxFileSizeBytes;

@@ -1,6 +1,7 @@
 package com.campuslink.entity;
 
 import com.campuslink.enums.Gender;
+import com.campuslink.enums.StudyLevel;
 import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
 import jakarta.persistence.ElementCollection;
@@ -86,6 +87,16 @@ public class Profile extends BaseEntity {
     @Column(name = "gender", length = 30)
     private Gender gender;
 
+    /**
+     * Niveau d'étude (Licence / Master / Doctorat) — collecté à l'onboarding
+     * (étape 1). Colonne ajoutée après coup : {@code ddl-auto: update} la
+     * crée automatiquement sur les bases existantes, {@code database/schema.sql}
+     * l'inclut pour les installations neuves.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "level", length = 20)
+    private StudyLevel level;
+
     @Size(max = 1000, message = "La bio ne doit pas dépasser 1000 caractères.")
     @Column(name = "bio", length = 1000)
     private String bio;
@@ -121,6 +132,26 @@ public class Profile extends BaseEntity {
     @Size(max = 100, message = "Le quartier ne doit pas dépasser 100 caractères.")
     @Column(name = "neighborhood", length = 100)
     private String neighborhood;
+
+    @Column(name = "profile_visible", nullable = false)
+    @Builder.Default
+    private boolean profileVisible = true;
+
+    @Column(name = "notification_likes", nullable = false)
+    @Builder.Default
+    private boolean notificationLikes = true;
+
+    @Column(name = "notification_matches", nullable = false)
+    @Builder.Default
+    private boolean notificationMatches = true;
+
+    @Column(name = "notification_messages", nullable = false)
+    @Builder.Default
+    private boolean notificationMessages = true;
+
+    @Column(name = "notification_reports", nullable = false)
+    @Builder.Default
+    private boolean notificationReports = true;
 
     /**
      * Centres d'intérêt (tags libres). Stockés dans une table de collection

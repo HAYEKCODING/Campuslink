@@ -64,7 +64,7 @@ class ProfileSearchServiceImplTest {
         Page<Profile> profilePage = new PageImpl<>(List.of(profile), pageable, 1);
 
         when(profileRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(profilePage);
-        when(profileMapper.toProfileResponse(profile)).thenReturn(ProfileResponse.builder().firstName("Awa").build());
+        when(profileMapper.toPublicProfileResponse(profile)).thenReturn(ProfileResponse.builder().firstName("Awa").build());
 
         Page<ProfileResponse> result = profileSearchService.search(ProfileSearchCriteria.builder().build(), pageable);
 

@@ -5,7 +5,9 @@ import com.campuslink.dto.response.ProfileResponse;
 import com.campuslink.entity.Profile;
 import com.campuslink.entity.User;
 import com.campuslink.exception.DuplicateResourceException;
+import com.campuslink.exception.BadRequestException;
 import com.campuslink.exception.ResourceNotFoundException;
+import com.campuslink.enums.Gender;
 import com.campuslink.mapper.ProfileMapper;
 import com.campuslink.repository.ProfileRepository;
 import com.campuslink.repository.UserRepository;
@@ -33,6 +35,7 @@ public class ProfileServiceImpl implements ProfileService {
     @Override
     @Transactional
     public ProfileResponse createProfile(UUID userId, ProfileRequest request) {
+        validateNewGender(request.getGender());
         User user = getUserOrThrow(userId);
 
         if (user.getProfile() != null) {
@@ -43,6 +46,8 @@ public class ProfileServiceImpl implements ProfileService {
                 .avatarUrl(request.getAvatarUrl())
                 .firstName(request.getFirstName().trim())
                 .lastName(request.getLastName().trim())
+                .gender(request.getGender())
+                .level(request.getLevel())
                 .dateOfBirth(request.getDateOfBirth())
                 .university(request.getUniversity())
                 .fieldOfStudy(request.getFieldOfStudy())
@@ -65,12 +70,20 @@ public class ProfileServiceImpl implements ProfileService {
     @Transactional
     public ProfileResponse updateProfile(UUID userId, ProfileRequest request) {
         Profile profile = getProfileOrThrow(userId);
+        Gender requestedGender = request.getGender();
+        if (requestedGender != null
+                && requestedGender != Gender.MALE
+                && requestedGender != Gender.FEMALE
+                && requestedGender != profile.getGender()) {
+            throw new BadRequestException("Le genre doit être Homme ou Femme.");
+        }
 
         profileMapper.updateEntityFromRequest(request, profile);
-        // Les champs collection ne sont pas fusionnés par MapStruct de façon fiable
-        // sur une simple affectation ; on les remplace explicitement pour éviter
-        // toute ambiguïté avec le suivi des changements Hibernate sur le Set existant.
-        profile.setInterests(request.getInterests() != null ? new HashSet<>(request.getInterests()) : new HashSet<>());
+        // Une collection omise signifie « inchangée » pour les mises à jour
+        // partielles envoyées par l'onboarding et les paramètres.
+        if (request.getInterests() != null) {
+            profile.setInterests(new HashSet<>(request.getInterests()));
+        }
 
         Profile savedProfile = profileRepository.save(profile);
 
@@ -107,7 +120,10 @@ public class ProfileServiceImpl implements ProfileService {
     public ProfileResponse getPublicProfile(UUID profileId) {
         Profile profile = profileRepository.findById(profileId)
                 .orElseThrow(() -> new ResourceNotFoundException("Profil", "id", profileId));
-        return profileMapper.toProfileResponse(profile);
+        if (!profile.isProfileVisible()) {
+            throw new ResourceNotFoundException("Profil", "id", profileId);
+        }
+        return profileMapper.toPublicProfileResponse(profile);
     }
 
     private User getUserOrThrow(UUID userId) {
@@ -120,4 +136,9 @@ public class ProfileServiceImpl implements ProfileService {
                 .orElseThrow(() -> new ResourceNotFoundException("Profil", "utilisateur", userId));
     }
 
+    private void validateNewGender(Gender gender) {
+        if (gender != null && gender != Gender.MALE && gender != Gender.FEMALE) {
+            throw new BadRequestException("Le genre doit être Homme ou Femme.");
+        }
+    }
 }

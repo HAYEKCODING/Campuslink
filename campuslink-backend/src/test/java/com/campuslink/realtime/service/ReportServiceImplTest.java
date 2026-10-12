@@ -7,6 +7,7 @@ import com.campuslink.realtime.entity.enums.ReportStatus;
 import com.campuslink.exception.DuplicateResourceException;
 import com.campuslink.exception.ResourceNotFoundException;
 import com.campuslink.realtime.repository.ReportRepository;
+import com.campuslink.repository.UserRepository;
 import com.campuslink.realtime.service.impl.ReportServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +31,8 @@ class ReportServiceImplTest {
     private ReportRepository reportRepository;
     @Mock
     private NotificationService notificationService;
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private ReportServiceImpl reportService;
@@ -41,6 +44,7 @@ class ReportServiceImplTest {
         request.setMotif("Comportement inapproprie");
         request.setDescription("Details...");
 
+        when(userRepository.existsByLegacyId(2L)).thenReturn(true);
         when(reportRepository.save(any(Report.class))).thenAnswer(inv -> {
             Report r = inv.getArgument(0);
             r.setId(77L);
@@ -62,6 +66,21 @@ class ReportServiceImplTest {
 
         assertThrows(DuplicateResourceException.class, () -> reportService.creer(1L, request));
         verifyNoInteractions(reportRepository);
+    }
+
+    @Test
+    void creer_leve404_quandCibleInconnue() {
+        // Sans cette vérification, l'insertion violerait la FK reports.cible_id
+        // → 500 au lieu d'une erreur métier explicite (404).
+        ReportRequest request = new ReportRequest();
+        request.setCibleId(999L);
+        request.setMotif("Spam");
+
+        when(userRepository.existsByLegacyId(999L)).thenReturn(false);
+
+        assertThrows(ResourceNotFoundException.class, () -> reportService.creer(1L, request));
+        verify(reportRepository, never()).save(any());
+        verifyNoInteractions(notificationService);
     }
 
     @Test

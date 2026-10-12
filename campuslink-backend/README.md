@@ -101,11 +101,14 @@ mysql -u root < database/schema.sql
 
 Autre possibilité : **phpMyAdmin** → onglet *Importer* → choisir
 `database/schema.sql`. Le script crée `campuslink_db` (utf8mb4) si elle
-n'existe pas, crée les 14 tables et **seed les 3 rôles**
+n'existe pas, crée les 16 tables et **seed les 3 rôles**
 (`STUDENT`, `TEACHER`, `ADMIN`).
 
 > ⚠️ Ce seed est obligatoire : sans lui, l'inscription échoue avec
 > « Rôle STUDENT introuvable en base ».
+>
+> `schema.sql` est **idempotent** (réexécutable sans erreur) : il recrée les
+> tables manquantes et ignore celles qui existent déjà.
 
 #### 3. Lancer l'application
 
@@ -353,6 +356,84 @@ Cloudinary étant préférable à un utilisateur sans image du tout.
 
 ---
 
+## Médias privés des conversations
+
+Les pièces jointes de chat sont des messages existants avec métadonnées de fichier
+en base ; leur contenu est stocké dans Cloudinary sous un identifiant aléatoire et
+avec le type de livraison `authenticated`. Le navigateur ne reçoit pas d'URL
+Cloudinary : prévisualisation et téléchargement passent par
+`GET /api/matches/{matchId}/media/{messageId}/content`. Cette route exige une
+authentification, vérifie que l'utilisateur appartient au match, puis récupère le
+fichier à l'aide d'une URL Cloudinary signée et privée.
+
+Formats acceptés : JPEG/PNG/WebP/GIF, MP4/MOV/WebM, PDF, DOC et DOCX. Le serveur
+vérifie la taille (50 Mo par défaut), l'extension, le MIME déclaré et la signature
+du contenu ; DOCX est en plus vérifié comme archive Office. Les liens `http(s)`
+contenus dans les messages texte apparaissent dans la catégorie « Liens ».
+
+| Variable | Défaut | Rôle |
+|---|---:|---|
+| `CHAT_MEDIA_MAX_FILE_SIZE_BYTES` | `52428800` | Limite métier par fichier (50 Mo) |
+| `CHAT_MEDIA_MAX_FILE_SIZE` | `50MB` | Limite multipart Spring par fichier |
+| `CHAT_MEDIA_MAX_REQUEST_SIZE` | `52MB` | Limite multipart totale incluant l'encapsulation HTTP |
+
+**Production Render :** aucun disque persistant Render n'est requis pour les
+pièces jointes. Le backend utilise les identifiants Cloudinary déjà configurés
+pour les médias de profil : `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY` et
+`CLOUDINARY_API_SECRET`. Ils doivent être renseignés dans l'environnement Render.
+L'application signale explicitement une erreur d'upload si ces identifiants
+manquent ; elle ne bascule pas vers un stockage local éphémère. Cloudinary doit
+autoriser les ressources de livraison `authenticated`. Les médias de profil
+conservent leur comportement actuel, y compris leur éventuel repli local.
+
+Sur une base existante, appliquer une fois `database/migration-chat-media.postgresql.sql`
+pour PostgreSQL/Neon ou `database/migration-chat-media.mysql.sql` pour MySQL avant
+de déployer le backend. Les migrations ajoutent les colonnes de métadonnées à
+`messages` sans modifier les messages existants.
+
+Routes (toutes authentifiées) :
+
+| Méthode | Route | Usage |
+|---|---|---|
+| `POST` | `/api/matches/{matchId}/media` | Envoyer un fichier multipart (`file`) |
+| `GET` | `/api/matches/{matchId}/media?category=MEDIA` | Bibliothèque (`MEDIA`, `DOCUMENTS` ou `LINKS`) |
+| `GET` | `/api/matches/{matchId}/media/{messageId}/content` | Prévisualiser/télécharger après contrôle d'accès |
+
+---
+
+## Appels audio et vidéo
+
+Les boutons d'appel dans les conversations utilisent WebRTC pour transporter les
+flux audio/vidéo et les destinations privées `/user/queue/calls` et
+`/app/calls.signal` pour la signalisation STOMP. Le backend tire l'identité de
+l'émetteur du `Principal` JWT, vérifie l'appartenance au match et à chaque étape
+de négociation, limite les signaux SDP/ICE en taille et maintient une seule
+session d'appel active par match dans la mémoire de l'instance. La notification
+d'appel entrant est conservée parmi les notifications de l'utilisateur et ouvre
+la conversation concernée. Le flux média n'est jamais transmis par le backend.
+
+| Variable | Défaut | Rôle |
+|---|---|---|
+| `WEBRTC_STUN_URLS` | `stun:stun.l.google.com:19302` | Un ou plusieurs URI STUN séparés par des virgules |
+| `WEBRTC_TURN_URLS` | vide | URI TURN/TURNS d'un serveur compatible avec l'authentification REST coturn |
+| `WEBRTC_TURN_SHARED_SECRET` | vide | Secret partagé TURN ; gardé côté backend pour générer les identifiants temporaires HMAC |
+| `WEBRTC_TURN_CREDENTIAL_TTL_SECONDS` | `3600` | Durée de vie des identifiants TURN temporaires (limite 24 h) |
+
+STUN seul permet d'établir certains appels, mais ne garantit pas les connexions
+entre réseaux avec NAT strict ou pare-feu. Pour un usage réel entre réseaux
+différents, fournir un serveur TURN public joignable en UDP et TCP/TLS, idéalement
+coturn configuré avec son mécanisme d'identifiants temporaires REST ; renseigner
+`WEBRTC_TURN_URLS` et son secret partagé uniquement dans l'environnement Render.
+L'endpoint authentifié `/api/matches/{matchId}/calls/ice-servers` génère des
+identifiants temporaires par utilisateur après contrôle du match. HTTPS est
+nécessaire en production pour autoriser caméra et microphone dans le navigateur.
+
+Le broker STOMP actuel et l'état des appels sont en mémoire : conserver une seule
+instance backend. Un déploiement multi-instance demande un broker partagé et un
+stockage partagé de l'état des appels. Aucun changement de schéma SQL n'est requis.
+
+---
+
 ## Module Profile
 
 CRUD complet sur le profil utilisateur, avec vue privée ("mon profil") et vue publique.
@@ -547,6 +628,40 @@ psql -U postgres -d campuslink_db -f database/schema.postgresql.sql
 > En développement, `ddl-auto: update` (profil `dev`) peut aussi générer le schéma
 > automatiquement à partir des entités JPA. `database/schema.sql` reste la source
 > de vérité pour la production (profil `prod`, `ddl-auto: validate`).
+>
+> Pour mettre à jour une base PostgreSQL déjà déployée avec les préférences de
+> visibilité et de notifications, exécuter une fois
+> [`database/migration-profile-preferences.postgresql.sql`](./database/migration-profile-preferences.postgresql.sql)
+> sur Neon avant de déployer le backend mis à jour. Les colonnes ont des valeurs
+> par défaut actives afin de conserver le comportement actuel des comptes existants.
+
+---
+
+## Déploiement — purge des données de test et seed admin
+
+Avant un déploiement, la base locale (remplies pendant le développement) est
+**purgée** puis le premier compte administrateur est créé :
+
+```bash
+# 1. Purge : vide toutes les tables SAUF roles (3 rôles) et testimonials
+#    (contenu éditorial). Idempotent, contraintes gérées (FK checks off).
+mysql -u root campuslink_db < database/cleanup.sql
+
+# 2. Démarrage avec le seed admin (idempotent : no-op si le compte existe)
+set ADMIN_EMAIL=admin@campuslink.ci
+set ADMIN_PASSWORD=<mot-de-passe-fort>
+mvnd spring-boot:run
+```
+
+- `database/cleanup.sql` supprime aussi bien les utilisateurs/profils que les
+  données temps réel (likes, matchs, messages, rapports…) — seuls les rôles et
+  les témoignages survivent.
+- `AdminSeedRunner` crée le compte `ADMIN_EMAIL` avec le hash BCrypt, statut
+  `ACTIVE` et rôle `ADMIN`. Variables absentes = no-op (aucun risque en local
+  ni en CI) ; rôle `ADMIN` absent de `roles` = erreur explicite au démarrage.
+- Les routes publiques de la landing (`/stats/public`, `/testimonials`,
+  `/contact`, `/reference/*`) fonctionnent dès le démarrage, sans
+  authentification — voir `SecurityConstants.PUBLIC_ENDPOINTS`.
 
 ---
 
@@ -574,6 +689,12 @@ Voir le fichier [`.env.example`](./.env.example) pour la liste complète.
 | `JWT_REFRESH_EXPIRATION`   | Durée de vie du refresh token (ms) |
 | `CLOUDINARY_CLOUD_NAME`      | Identifiant du cloud Cloudinary  |
 | `MAIL_USERNAME` / `MAIL_PASSWORD` | Identifiants SMTP           |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Identifiants OAuth Google (facultatifs) |
+| `FACEBOOK_CLIENT_ID` / `FACEBOOK_CLIENT_SECRET` | Identifiants OAuth Facebook (facultatifs) |
+| `OAUTH2_FRONTEND_URL` | Origine publique du frontend qui reçoit le callback |
+| `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | Identifiants Cloudinary requis pour les pièces jointes privées |
+| `CHAT_MEDIA_MAX_FILE_SIZE_BYTES` | Limite par pièce jointe, en octets (50 Mo par défaut) |
+| `WEBRTC_TURN_URLS` / `WEBRTC_TURN_SHARED_SECRET` | Serveur TURN compatible coturn REST pour les réseaux qui exigent un relais |
 
 ---
 
@@ -592,11 +713,26 @@ Voir le fichier [`.env.example`](./.env.example) pour la liste complète.
    | `MAIL_USERNAME` / `MAIL_PASSWORD` | identifiants SMTP |
    | `CLOUDINARY_CLOUD_NAME` / `CLOUDINARY_API_KEY` / `CLOUDINARY_API_SECRET` | identifiants Cloudinary |
    | `CORS_ALLOWED_ORIGINS` | domaine(s) du frontend en prod |
+   | `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | OAuth Client ID et secret Google |
+   | `FACEBOOK_CLIENT_ID` / `FACEBOOK_CLIENT_SECRET` | App ID et secret Facebook |
+   | `OAUTH2_FRONTEND_URL` | URL Vercel, sans slash final |
+   | `CHAT_MEDIA_MAX_FILE_SIZE_BYTES` | `52428800` (50 Mo) |
+   | `WEBRTC_STUN_URLS` | `stun:stun.l.google.com:19302` (ou service STUN choisi) |
+   | `WEBRTC_TURN_URLS` | URI du serveur TURN, si disponible |
+   | `WEBRTC_TURN_SHARED_SECRET` | Secret partagé privé du serveur TURN compatible coturn REST |
 
-4. Déployer. Render construit l'image via le `Dockerfile`, lance le conteneur sur le port qu'il fournit via `PORT`
+4. Aucun disque persistant Render n'est nécessaire pour les pièces jointes stockées sur Cloudinary.
+5. Sur une base Neon existante, exécuter `database/migration-chat-media.postgresql.sql`, puis `database/migration-profile-preferences.postgresql.sql` (si ce n'est pas déjà fait)
+   et `database/migration-oauth-gender.postgresql.sql` avant le déploiement. Ces migrations ajoutent les colonnes/table
+   requises sans supprimer les valeurs de genre historiques déjà enregistrées.
+6. Déployer. Render construit l'image via le `Dockerfile`, lance le conteneur sur le port qu'il fournit via `PORT`
    (déjà pris en compte : `server.port: ${PORT:${SERVER_PORT:8080}}`), et route le trafic HTTPS vers le conteneur
    (`server.forward-headers-strategy: framework` en profil `prod` pour une détection correcte du schéma).
-5. `ddl-auto: validate` en prod : exécuter `database/schema.postgresql.sql` sur la base Neon **avant** le premier déploiement.
+7. Dans Google Cloud Console, ajouter l'URI de redirection autorisée
+   `https://<service-render>.onrender.com/api/login/oauth2/code/google`.
+   Dans Meta for Developers, activer Facebook Login et ajouter
+   `https://<service-render>.onrender.com/api/login/oauth2/code/facebook` aux URI OAuth de redirection valides.
+   Configurer aussi le domaine Vercel dans les domaines autorisés de chaque fournisseur.
 
 ---
 

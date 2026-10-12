@@ -1,6 +1,9 @@
 package com.campuslink.dto.request;
 
+import com.campuslink.enums.Gender;
 import lombok.AllArgsConstructor;
+
+import java.util.UUID;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -27,10 +30,21 @@ public class ProfileSearchCriteria {
 
     private Integer minAge;
     private Integer maxAge;
+    private Gender gender;
     private String university;
     private String fieldOfStudy;
     private String neighborhood;
     private String city;
     private Set<String> interests;
+
+    /**
+     * Identifiant de l'utilisateur à exclure des résultats (son propre profil).
+     * Renseigné depuis {@code GET /profiles/search} quand l'appelant est
+     * authentifié : on ne voit pas soi-même dans le feed de découverte ni dans
+     * la recherche — liker son propre profil est de toute façon rejeté par le
+     * module temps réel ({@code LikeServiceImpl}). {@code null} = aucun filtre
+     * (appel anonyme).
+     */
+    private UUID excludedUserId;
 
 }

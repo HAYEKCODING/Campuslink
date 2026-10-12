@@ -4,15 +4,20 @@ import com.campuslink.dto.request.LoginRequest;
 import com.campuslink.dto.request.RefreshTokenRequest;
 import com.campuslink.dto.request.RegisterRequest;
 import com.campuslink.dto.response.AuthResponse;
+import com.campuslink.dto.response.OAuthLoginResult;
 import com.campuslink.dto.response.UserResponse;
 import com.campuslink.entity.RefreshToken;
 import com.campuslink.entity.Role;
 import com.campuslink.entity.User;
+import com.campuslink.entity.OAuthIdentity;
+import com.campuslink.enums.AccountStatus;
+import com.campuslink.enums.Gender;
 import com.campuslink.enums.RoleName;
 import com.campuslink.exception.DuplicateResourceException;
 import com.campuslink.exception.UnauthorizedException;
 import com.campuslink.mapper.UserMapper;
 import com.campuslink.repository.RefreshTokenRepository;
+import com.campuslink.repository.OAuthIdentityRepository;
 import com.campuslink.repository.RoleRepository;
 import com.campuslink.repository.UserRepository;
 import com.campuslink.security.JwtService;
@@ -68,6 +73,8 @@ class AuthServiceImplTest {
     private UserMapper userMapper;
     @Mock
     private OtpService otpService;
+    @Mock
+    private OAuthIdentityRepository oauthIdentityRepository;
 
     private AuthServiceImpl authService;
 
@@ -75,7 +82,8 @@ class AuthServiceImplTest {
     void setUp() {
         authService = new AuthServiceImpl(
                 userRepository, roleRepository, refreshTokenRepository,
-                passwordEncoder, authenticationManager, jwtService, userMapper, otpService);
+                passwordEncoder, authenticationManager, jwtService, userMapper, otpService,
+                oauthIdentityRepository);
     }
 
     // ===================== register =====================
@@ -122,6 +130,23 @@ class AuthServiceImplTest {
         }
 
         @Test
+        void shouldRejectLegacyGenderForNewAccount() {
+            RegisterRequest request = RegisterRequest.builder()
+                    .email("new@campuslink.io")
+                    .password("Secret123")
+                    .confirmPassword("Secret123")
+                    .firstName("Awa")
+                    .lastName("Kone")
+                    .gender(Gender.OTHER)
+                    .build();
+
+            assertThatThrownBy(() -> authService.register(request))
+                    .isInstanceOf(com.campuslink.exception.BadRequestException.class)
+                    .hasMessageContaining("Homme ou Femme");
+            verify(userRepository, never()).save(any());
+        }
+
+        @Test
         void shouldNotFail_whenOtpEmailSendingThrows() {
             RegisterRequest request = RegisterRequest.builder()
                     .email("nouveau@campuslink.io")
@@ -146,6 +171,94 @@ class AuthServiceImplTest {
             UserResponse response = authService.register(request);
 
             assertThat(response.getEmail()).isEqualTo("nouveau@campuslink.io");
+        }
+
+        @Nested
+        class OAuthLogin {
+
+            @Test
+            void createsVerifiedProviderAccountAndIssuesTheExistingTokenPair() {
+                Role studentRole = Role.builder().name(RoleName.STUDENT).build();
+                when(oauthIdentityRepository.findByProviderAndProviderUserId("google", "google-sub"))
+                        .thenReturn(Optional.empty());
+                when(userRepository.existsByEmail("awa@example.com")).thenReturn(false);
+                when(roleRepository.findByName(RoleName.STUDENT)).thenReturn(Optional.of(studentRole));
+                when(passwordEncoder.encode(any())).thenReturn("bcrypt-hash");
+                when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+                when(oauthIdentityRepository.save(any(OAuthIdentity.class)))
+                        .thenAnswer(invocation -> invocation.getArgument(0));
+                when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> {
+                    RefreshToken token = invocation.getArgument(0);
+                    token.setId(UUID.randomUUID());
+                    return token;
+                });
+                when(jwtService.generateAccessToken(any(UserPrincipal.class))).thenReturn("access");
+                when(jwtService.generateRefreshToken(any(UserPrincipal.class), any(UUID.class))).thenReturn("refresh");
+                when(userMapper.toUserResponse(any(User.class)))
+                        .thenReturn(UserResponse.builder().email("awa@example.com").build());
+
+                OAuthLoginResult result = authService.loginWithOAuth(
+                        "google", "google-sub", "Awa@example.com", "Awa", "Kone", true);
+
+                assertThat(result.isNewAccount()).isTrue();
+                assertThat(result.getAuthResponse().getAccessToken()).isEqualTo("access");
+                assertThat(result.getAuthResponse().getRefreshToken()).isEqualTo("refresh");
+                ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
+                verify(userRepository, times(2)).save(userCaptor.capture());
+                User createdUser = userCaptor.getAllValues().get(0);
+                assertThat(createdUser.getEmail()).isEqualTo("awa@example.com");
+                assertThat(createdUser.getStatus()).isEqualTo(AccountStatus.ACTIVE);
+                assertThat(createdUser.isEmailVerified()).isTrue();
+                assertThat(createdUser.getProfile().getFirstName()).isEqualTo("Awa");
+                verify(oauthIdentityRepository).save(any(OAuthIdentity.class));
+            }
+
+            @Test
+            void refusesUnverifiedEmailForNewSocialAccount() {
+                when(oauthIdentityRepository.findByProviderAndProviderUserId("google", "google-sub"))
+                        .thenReturn(Optional.empty());
+
+                assertThatThrownBy(() -> authService.loginWithOAuth(
+                        "google", "google-sub", "awa@example.com", "Awa", "Kone", false))
+                        .isInstanceOf(UnauthorizedException.class)
+                        .hasMessageContaining("confirmer");
+                verify(userRepository, never()).save(any());
+            }
+
+            @Test
+            void reusesExistingProviderIdentityWithoutCreatingAnotherUser() {
+                User existingUser = User.builder()
+                        .email("awa@example.com")
+                        .password("stored-hash")
+                        .status(AccountStatus.ACTIVE)
+                        .emailVerified(true)
+                        .build();
+                OAuthIdentity identity = OAuthIdentity.builder()
+                        .provider("facebook")
+                        .providerUserId("facebook-sub")
+                        .user(existingUser)
+                        .build();
+                when(oauthIdentityRepository.findByProviderAndProviderUserId("facebook", "facebook-sub"))
+                        .thenReturn(Optional.of(identity));
+                when(userRepository.save(existingUser)).thenReturn(existingUser);
+                when(refreshTokenRepository.save(any(RefreshToken.class))).thenAnswer(invocation -> {
+                    RefreshToken token = invocation.getArgument(0);
+                    token.setId(UUID.randomUUID());
+                    return token;
+                });
+                when(jwtService.generateAccessToken(any(UserPrincipal.class))).thenReturn("access");
+                when(jwtService.generateRefreshToken(any(UserPrincipal.class), any(UUID.class))).thenReturn("refresh");
+                when(userMapper.toUserResponse(existingUser))
+                        .thenReturn(UserResponse.builder().email(existingUser.getEmail()).build());
+
+                OAuthLoginResult result = authService.loginWithOAuth(
+                        "facebook", "facebook-sub", null, null, null, false);
+
+                assertThat(result.isNewAccount()).isFalse();
+                assertThat(result.getAuthResponse().getUser().getEmail()).isEqualTo("awa@example.com");
+                verify(userRepository).save(existingUser);
+                verify(oauthIdentityRepository, never()).save(any());
+            }
         }
 
         @Test

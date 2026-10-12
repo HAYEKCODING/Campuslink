@@ -54,7 +54,7 @@ export default function CampusLinkSignup() {
   const [phone, setPhone] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [gender, setGender] = useState("Homme");
+  const [gender, setGender] = useState("MALE");
   const [accepted, setAccepted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
@@ -167,19 +167,19 @@ export default function CampusLinkSignup() {
 
           <div>
             <p className="text-sm font-semibold text-slate-700 mb-2">Je suis</p>
-            <div className="grid grid-cols-3 gap-2">
-              {["Homme", "Femme", "Autre"].map((option) => (
+            <div className="grid grid-cols-2 gap-2">
+              {[{ value: "MALE", label: "Homme" }, { value: "FEMALE", label: "Femme" }].map((option) => (
                 <button
                   type="button"
-                  key={option}
-                  onClick={() => setGender(option)}
+                  key={option.value}
+                  onClick={() => setGender(option.value)}
                   className={`text-sm font-medium py-2.5 rounded-lg border transition-colors ${
-                    gender === option
+                    gender === option.value
                       ? "bg-violet-600 text-white border-violet-600"
                       : "bg-white text-slate-600 border-slate-200 hover:border-violet-300"
                   }`}
                 >
-                  {option}
+                  {option.label}
                 </button>
               ))}
             </div>

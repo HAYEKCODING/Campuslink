@@ -46,6 +46,18 @@ public class Message {
     @Column(name = "date_lecture")
     private Instant dateLecture;
 
+    @Column(name = "media_storage_key", length = 120)
+    private String mediaStorageKey;
+
+    @Column(name = "media_original_name", length = 255)
+    private String mediaOriginalName;
+
+    @Column(name = "media_content_type", length = 120)
+    private String mediaContentType;
+
+    @Column(name = "media_size_bytes")
+    private Long mediaSizeBytes;
+
     @PrePersist
     protected void onCreate() {
         this.dateEnvoi = Instant.now();

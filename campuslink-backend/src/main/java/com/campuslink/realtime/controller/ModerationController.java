@@ -25,12 +25,14 @@ public class ModerationController {
     private final CurrentUserPort currentUserPort;
 
     @PostMapping("/avertir")
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     @Operation(summary = "Avertir un utilisateur (trace uniquement, pas de changement de statut)")
     public ResponseEntity<ModerationLog> avertir(@Valid @RequestBody ModerationActionRequest request) {
         return ResponseEntity.ok(moderationService.avertir(currentUserPort.getCurrentUserId(), request));
     }
 
     @PostMapping("/suspendre")
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     @Operation(summary = "Suspendre temporairement un compte")
     public ResponseEntity<ModerationLog> suspendre(@Valid @RequestBody ModerationActionRequest request) {
         return ResponseEntity.ok(moderationService.suspendre(currentUserPort.getCurrentUserId(), request));
@@ -51,12 +53,14 @@ public class ModerationController {
     }
 
     @GetMapping("/historique/{utilisateurId}")
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     @Operation(summary = "Historique de moderation pour un utilisateur donne")
     public ResponseEntity<List<ModerationLog>> historique(@PathVariable Long utilisateurId) {
         return ResponseEntity.ok(moderationService.historiquePourUtilisateur(utilisateurId));
     }
 
     @GetMapping("/journal")
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN')")
     @Operation(summary = "Journal complet des actions de moderation")
     public ResponseEntity<List<ModerationLog>> journal() {
         return ResponseEntity.ok(moderationService.journalComplet());

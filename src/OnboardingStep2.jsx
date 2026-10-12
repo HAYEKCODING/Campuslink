@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { useAsyncData } from "./hooks/useAsyncData";
-import { getNeighborhoods, getInterests, updateProfile } from "./services/profileService";
+import { getMyProfile, getNeighborhoods, getInterests, updateProfile } from "./services/profileService";
 import { GENDERS } from "./lib/referenceData";
 
 /**
@@ -44,6 +44,19 @@ export default function OnboardingStep2() {
 
   const { data: neighborhoods } = useAsyncData(() => getNeighborhoods(), []);
   const { data: availableInterests } = useAsyncData(() => getInterests(), []);
+  const {
+    data: existingProfile,
+    loading: profileLoading,
+    error: profileError,
+  } = useAsyncData(() => getMyProfile(), []);
+
+  React.useEffect(() => {
+    if (!existingProfile) return;
+    setNeighborhood(existingProfile.neighborhood || "");
+    setGender(existingProfile.gender || "");
+    setAbout(existingProfile.bio || "");
+    setInterests(existingProfile.interests || []);
+  }, [existingProfile]);
 
   const toggleInterest = (interest) => {
     setInterests((prev) =>
@@ -61,6 +74,10 @@ export default function OnboardingStep2() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError(null);
+    if (profileLoading || profileError || !existingProfile) {
+      setSubmitError(profileError || "Impossible de charger votre profil. Réessayez avant de continuer.");
+      return;
+    }
 
     if (!neighborhood.trim() || !gender) {
       setSubmitError("Merci de compléter tous les champs obligatoires avant de continuer.");
@@ -74,7 +91,7 @@ export default function OnboardingStep2() {
     setSubmitting(true);
     try {
       await updateProfile({
-        city: "Bouaké",
+        city: existingProfile.city || "Bouaké",
         neighborhood: neighborhood.trim(),
         gender,
         about,
@@ -105,7 +122,7 @@ export default function OnboardingStep2() {
             <input
               id="ville"
               type="text"
-              value="Bouaké"
+              value={existingProfile?.city || "Bouaké"}
               disabled
               className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 bg-slate-50 text-slate-500"
             />
@@ -234,6 +251,11 @@ export default function OnboardingStep2() {
           </div>
 
           {submitError && <p className="text-sm text-rose-500">{submitError}</p>}
+          {profileError && (
+            <p role="alert" className="text-sm text-rose-500">
+              Impossible de charger votre profil : {profileError}
+            </p>
+          )}
 
           <div className="flex gap-3 pt-2">
             <button
@@ -245,7 +267,7 @@ export default function OnboardingStep2() {
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || profileLoading || Boolean(profileError)}
               className="flex-1 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
             >
               {submitting ? "Enregistrement..." : "Suivant"}

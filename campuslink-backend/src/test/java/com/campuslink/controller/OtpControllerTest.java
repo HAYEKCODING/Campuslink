@@ -15,6 +15,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
@@ -48,6 +49,9 @@ class OtpControllerTest {
     /** Voir {@link AuthControllerTest} : nécessaire pour la slice {@code @WebMvcTest}. */
     @MockBean
     private JwtService jwtService;
+
+    @MockBean
+    private UserDetailsService userDetailsService;
 
     // ===================== POST /otp/send & /otp/resend =====================
 

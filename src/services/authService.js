@@ -13,26 +13,43 @@ import { api, setAuthTokens, isAuthenticated } from "../lib/api";
  * (à ajouter côté backend si besoin plus tard).
  */
 
-export async function signup({ fullName, firstName, email, password, confirmPassword }) {
+export async function signup({ fullName, firstName, email, password, confirmPassword, gender }) {
   await api.post("/auth/register", {
     email,
     password,
     confirmPassword: confirmPassword ?? password,
     firstName,
     lastName: fullName, // le champ "Nom complet" du formulaire sert de nom de famille
+    gender,
   });
 
   return login({ email, password });
 }
 
+export function getOAuthProviders() {
+  return api.get("/auth/providers");
+}
+
+export function startOAuth(provider) {
+  if (provider !== "google" && provider !== "facebook") {
+    throw new Error("Fournisseur de connexion non pris en charge.");
+  }
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "/api";
+  window.location.assign(`${apiBaseUrl}/oauth2/authorization/${provider}`);
+}
+
 export async function login({ email, password }) {
   const data = await api.post("/auth/login", { email, password });
   setAuthTokens({ accessToken: data.accessToken, refreshToken: data.refreshToken });
+  // Ouvre la connexion temps réel (écouteur RealtimeSession dans App.jsx).
+  window.dispatchEvent(new CustomEvent("campuslink:authenticated"));
   return data;
 }
 
 export function logout() {
   setAuthTokens({});
+  // Ferme la connexion STOMP : plus de session, plus d'écoute privée.
+  window.dispatchEvent(new CustomEvent("campuslink:logged-out"));
 }
 
 // Déconnexion volontaire : révoque aussi le refresh token côté serveur
@@ -50,6 +67,16 @@ export async function logoutRemote() {
 
 export function requestPasswordReset(email) {
   return api.post("/auth/forgot-password", { email });
+}
+
+// POST /auth/reset-password — consomme le jeton du lien reçu par email et
+// définit le nouveau mot de passe (la confirmation est exigée par le DTO).
+export function resetPassword(token, newPassword, confirmPassword) {
+  return api.post("/auth/reset-password", {
+    token,
+    newPassword,
+    confirmPassword: confirmPassword ?? newPassword,
+  });
 }
 
 export { isAuthenticated };

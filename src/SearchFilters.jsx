@@ -5,17 +5,17 @@ import Layout from "./Layout";
 import { useAsyncData } from "./hooks/useAsyncData";
 import { searchProfiles } from "./services/searchService";
 import { getUniversities, getNeighborhoods, getInterests } from "./services/profileService";
+import { GENDERS } from "./lib/referenceData";
 import { LoadingState, EmptyState, ErrorState } from "./components/ui/AsyncStates";
 
 /**
  * CampusLink — Recherche & Filtres
  *
  * Filtres alignés sur GET /profiles/search (backend) :
- * university, neighborhood, minAge/maxAge, interests (« au moins un »).
+ * university, neighborhood, minAge/maxAge, interests (« au moins un »), genre.
  * Les listes servent de suggestions : les champs restent éditables, la
  * recherche backend étant une correspondance partielle.
- * Le genre n'est pas exposé par l'endpoint de recherche, il n'est donc pas
- * proposé (un filtre sans effet serait trompeur).
+ * Le genre est un filtre d'égalité stricte sur l'enum Gender (vide = tous).
  */
 
 function SuggestInput({ label, placeholder, suggestions = [], value, onChange, listId }) {
@@ -114,6 +114,7 @@ export default function SearchFilters() {
   const [university, setUniversity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [interest, setInterest] = useState("");
+  const [gender, setGender] = useState("");
   const [ageRange, setAgeRange] = useState([18, 30]);
   const [results, setResults] = useState(null);
   const [searching, setSearching] = useState(false);
@@ -130,6 +131,7 @@ export default function SearchFilters() {
       university: university.trim(),
       neighborhood: neighborhood.trim(),
       interests: interest ? [interest] : [],
+      gender,
       minAge: ageRange[0],
       maxAge: ageRange[1],
     })
@@ -164,6 +166,25 @@ export default function SearchFilters() {
               max={ageRange[1]}
               onChange={(min, max) => setAgeRange([min, max])}
             />
+
+            <div>
+              <label htmlFor="filtre-genre" className="text-sm font-semibold text-slate-700 mb-1.5 block">
+                Genre
+              </label>
+              <select
+                id="filtre-genre"
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className="w-full px-4 py-2.5 text-sm rounded-lg border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+              >
+                <option value="">Tous les genres</option>
+                {GENDERS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+            </div>
 
             <SuggestInput
               label="Quartier"

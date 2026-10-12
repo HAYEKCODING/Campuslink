@@ -1,12 +1,14 @@
 package com.campuslink.dto.response;
 
 import com.campuslink.enums.Gender;
+import com.campuslink.enums.StudyLevel;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.Set;
 import java.util.UUID;
 
@@ -16,8 +18,8 @@ import java.util.UUID;
  * ({@code GET /profiles/{id}/public}) — même forme dans les deux cas,
  * conformément au périmètre de champs défini pour ce module.
  *
- * <p>N'expose jamais {@code dateOfBirth} directement : uniquement l'âge
- * calculé (voir {@code ProfileMapper}), par souci de vie privée.</p>
+ * <p>{@code dateOfBirth} est renseignée uniquement par le point d'accès privé
+ * {@code GET /profiles/me}; les vues publiques ne l'exposent pas.</p>
  */
 @Getter
 @Builder
@@ -39,7 +41,9 @@ public class ProfileResponse {
     private String firstName;
     private String lastName;
     private Integer age;
+    private LocalDate dateOfBirth;
     private Gender gender;
+    private StudyLevel level;
     private String university;
     private String fieldOfStudy;
     private String neighborhood;

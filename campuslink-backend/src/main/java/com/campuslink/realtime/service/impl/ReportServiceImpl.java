@@ -8,6 +8,7 @@ import com.campuslink.realtime.entity.enums.ReportStatus;
 import com.campuslink.exception.DuplicateResourceException;
 import com.campuslink.exception.ResourceNotFoundException;
 import com.campuslink.realtime.repository.ReportRepository;
+import com.campuslink.repository.UserRepository;
 import com.campuslink.realtime.service.NotificationService;
 import com.campuslink.realtime.service.ReportService;
 import lombok.RequiredArgsConstructor;
@@ -23,12 +24,18 @@ public class ReportServiceImpl implements ReportService {
 
     private final ReportRepository reportRepository;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
     public ReportResponse creer(Long emetteurId, ReportRequest request) {
         if (emetteurId.equals(request.getCibleId())) {
             throw new DuplicateResourceException("Impossible de se signaler soi-meme");
+        }
+        // La cible doit exister : sinon l'insertion violerait la contrainte FK
+        // fk_report_cible en base et le client recevrait un 500 au lieu d'un 404.
+        if (!userRepository.existsByLegacyId(request.getCibleId())) {
+            throw new ResourceNotFoundException("Profil", "cibleId", request.getCibleId());
         }
 
         Report report = Report.builder()

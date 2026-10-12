@@ -13,15 +13,21 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.validation.FieldError;
+import org.springframework.web.HttpMediaTypeNotSupportedException;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.data.mapping.PropertyReferenceException;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * Gestionnaire global des exceptions de l'API.
@@ -255,6 +261,57 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * Un paramètre de chemin ou de requête ne peut pas être converti vers le
+     * type attendu — ex. {@code /profiles/search?gender=SALTIQUE} (enum
+     * {@code Gender} invalide) ou {@code /reference/123}. Sans ce handler,
+     * l'exception retomberait sur le filet générique et produirait un 500
+     * trompeur pour ce qui est une faute client.
+     */
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ErrorResponse> handleTypeMismatch(MethodArgumentTypeMismatchException ex,
+                                                              HttpServletRequest request) {
+        return buildResponse(HttpStatus.BAD_REQUEST,
+                "Paramètre '" + ex.getName() + "' invalide : '" + ex.getValue() + "'.", request);
+    }
+
+    /**
+     * Chemin sans aucun mapping : Spring lève {@link NoResourceFoundException}
+     * (« No static resource … ») qui, sans ce handler, tombait dans le filet
+     * générique → 500 + stack trace ERROR pour une faute client (test de
+     * simulation : GET /api/nope/inconnu authentifié renvoyait 500).
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoResourceFound(NoResourceFoundException ex,
+                                                                HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND,
+                "Ressource introuvable : " + request.getRequestURI(), request);
+    }
+
+    /** Variante « aucune route ne correspond » (config à throwExceptionIfNoHandlerFound). */
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNoHandlerFound(NoHandlerFoundException ex,
+                                                               HttpServletRequest request) {
+        return buildResponse(HttpStatus.NOT_FOUND,
+                "Ressource introuvable : " + request.getRequestURI(), request);
+    }
+
+    /** Méthode HTTP non supportée par la route (ex. DELETE sur /auth/login) → 405, pas 500. */
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex,
+                                                                   HttpServletRequest request) {
+        return buildResponse(HttpStatus.METHOD_NOT_ALLOWED,
+                "Méthode " + ex.getMethod() + " non supportée par cette ressource.", request);
+    }
+
+    /** Content-Type non traitable par la route (ex. PUT JSON sur /media/upload) → 415, pas 500. */
+    @ExceptionHandler(HttpMediaTypeNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMediaTypeNotSupported(HttpMediaTypeNotSupportedException ex,
+                                                                     HttpServletRequest request) {
+        return buildResponse(HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+                "Type de contenu non pris en charge.", request);
+    }
+
+    /**
      * Filet de sécurité : toute exception non gérée explicitement retombe ici (HTTP 500).
      */
     @ExceptionHandler(Exception.class)
@@ -265,11 +322,36 @@ public class GlobalExceptionHandler {
                 "Une erreur interne est survenue. Veuillez réessayer ultérieurement.", request);
     }
 
+    /**
+     * Champs dont la valeur saisie ne doit jamais être réaffichée dans une
+     * réponse d'erreur : mot de passe, jeton, code OTP, email... L'erreur
+     * indique quel champ est invalide, pas ce qui a été saisi — sinon la
+     * valeur atterrit dans les réponses client, les logs et l'APM
+     * ("sensitive data exposure").
+     */
+    private static final Pattern SENSITIVE_FIELD_PATTERN =
+            Pattern.compile("password|pwd|token|secret|otp|code|credential|email", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * Remplace la valeur rejetée par {@code "***"} si le champ est sensible ;
+     * les autres champs gardent leur valeur pour aider le client à diagnostiquer.
+     */
+    private static Object sanitizeRejectedValue(String fieldName, Object rejectedValue) {
+        if (rejectedValue == null) {
+            return null;
+        }
+        if (fieldName != null && SENSITIVE_FIELD_PATTERN.matcher(fieldName).find()) {
+            return "***";
+        }
+        return rejectedValue;
+    }
+
     private ErrorResponse.FieldErrorDetail toFieldErrorDetail(FieldError fieldError) {
         return ErrorResponse.FieldErrorDetail.builder()
                 .field(fieldError.getField())
                 .message(fieldError.getDefaultMessage())
-                .rejectedValue(fieldError.getRejectedValue())
+                .rejectedValue(sanitizeRejectedValue(fieldError.getField(),
+                        fieldError.getRejectedValue()))
                 .build();
     }
 
@@ -287,7 +369,8 @@ public class GlobalExceptionHandler {
         return ErrorResponse.FieldErrorDetail.builder()
                 .field(fieldName)
                 .message(violation.getMessage())
-                .rejectedValue(violation.getInvalidValue())
+                .rejectedValue(sanitizeRejectedValue(fieldName,
+                        violation.getInvalidValue()))
                 .build();
     }
 

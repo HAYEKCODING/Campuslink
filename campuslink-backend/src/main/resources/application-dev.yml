@@ -17,3 +17,19 @@ management:
   health:
     mail:
       enabled: false
+
+application:
+  # Pas de SMTP en local : les emails (codes OTP, réinitialisation de mot de
+  # passe) sont journalisés au lieu de lever 503, ce qui débloque la vérification
+  # d'email et le forgot-password pendant les tests. Forcé à false en prod
+  # (application-prod.yml).
+  mail:
+    log-only: true
+
+  # Secret JWT de développement — profil actif localement par défaut
+  # (spring.profiles.active: ${SPRING_PROFILES_ACTIVE:dev}).
+  # Volontairement hors d'application.yml : la configuration de base ne
+  # contient plus aucun secret en dur. Ne jamais réutiliser ce défaut en
+  # production : application-prod.yml exige JWT_SECRET et n'a aucun défaut.
+  jwt:
+    secret: ${JWT_SECRET:changeThisSecretKeyInProductionEnvironmentAtLeast256BitsLong}

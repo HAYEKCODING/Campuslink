@@ -47,7 +47,7 @@ public class ProfileSearchServiceImpl implements ProfileSearchService {
         log.debug("Recherche de profils : {} résultat(s) sur {} page(s)",
                 profiles.getNumberOfElements(), profiles.getTotalPages());
 
-        return profiles.map(profileMapper::toProfileResponse);
+        return profiles.map(profileMapper::toPublicProfileResponse);
     }
 
     private void validateAgeRange(ProfileSearchCriteria criteria) {

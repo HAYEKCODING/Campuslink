@@ -3,9 +3,12 @@ package com.campuslink.realtime.service.impl;
 import com.campuslink.realtime.dto.response.LikeResponse;
 import com.campuslink.realtime.entity.Like;
 import com.campuslink.realtime.entity.Match;
+import com.campuslink.realtime.entity.enums.MatchStatus;
 import com.campuslink.realtime.entity.enums.NotificationType;
 import com.campuslink.exception.DuplicateResourceException;
+import com.campuslink.exception.ResourceNotFoundException;
 import com.campuslink.realtime.repository.LikeRepository;
+import com.campuslink.repository.UserRepository;
 import com.campuslink.realtime.service.LikeService;
 import com.campuslink.realtime.service.MatchService;
 import com.campuslink.realtime.service.NotificationService;
@@ -30,12 +33,18 @@ public class LikeServiceImpl implements LikeService {
     private final LikeRepository likeRepository;
     private final MatchService matchService;
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional
     public LikeResponse liker(Long emetteurId, Long cibleId) {
         if (emetteurId.equals(cibleId)) {
             throw new DuplicateResourceException("Impossible de se liker soi-meme");
+        }
+        // La cible doit exister : sinon l'insertion violerait la contrainte FK
+        // fk_like_cible en base et le client recevrait un 500 au lieu d'un 404.
+        if (!userRepository.existsByLegacyId(cibleId)) {
+            throw new ResourceNotFoundException("Profil", "cibleId", cibleId);
         }
         if (likeRepository.existsByEmetteurIdAndCibleId(emetteurId, cibleId)) {
             throw new DuplicateResourceException("Vous avez deja like ce profil");
@@ -54,13 +63,16 @@ public class LikeServiceImpl implements LikeService {
         boolean matchCree = false;
         if (likeRepository.existsByEmetteurIdAndCibleId(cibleId, emetteurId)) {
             // La cible avait deja like l'emetteur -> match mutuel
+            boolean matchExistant = matchService.trouverEntre(emetteurId, cibleId).isPresent();
             Match match = matchService.creerSiAbsent(emetteurId, cibleId);
-            matchCree = true;
+            matchCree = !matchExistant && match.getStatut() == MatchStatus.ACTIF;
 
-            notificationService.creerEtEnvoyer(
-                    emetteurId, NotificationType.MATCH, "Vous avez un nouveau match !", match.getId());
-            notificationService.creerEtEnvoyer(
-                    cibleId, NotificationType.MATCH, "Vous avez un nouveau match !", match.getId());
+            if (matchCree) {
+                notificationService.creerEtEnvoyer(
+                        emetteurId, NotificationType.MATCH, "Vous avez un nouveau match !", match.getId());
+                notificationService.creerEtEnvoyer(
+                        cibleId, NotificationType.MATCH, "Vous avez un nouveau match !", match.getId());
+            }
         }
 
         return LikeResponse.builder()

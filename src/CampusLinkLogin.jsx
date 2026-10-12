@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock, Eye, EyeOff, Heart } from "lucide-react";
-import { login, requestPasswordReset } from "./services/authService";
+import { getOAuthProviders, login, requestPasswordReset, startOAuth } from "./services/authService";
 
 /**
  * CampusLink — Se connecter
@@ -72,6 +72,33 @@ export default function CampusLinkLogin() {
   const [error, setError] = useState(null);
   const [resetMode, setResetMode] = useState(false);
   const [resetStatus, setResetStatus] = useState(null); // null | "sending" | "sent" | "error"
+  const [oauthProviders, setOAuthProviders] = useState(null);
+
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const oauthError = query.get("oauthError");
+    if (oauthError) {
+      setError(oauthError === "cancelled"
+        ? "La connexion avec le fournisseur a été annulée."
+        : oauthError === "account"
+          ? "Impossible de connecter ce compte. Vérifiez l'adresse utilisée ou connectez-vous d'abord avec votre compte existant."
+          : "La connexion avec le fournisseur a échoué. Réessayez.");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+
+    getOAuthProviders()
+      .then(setOAuthProviders)
+      .catch(() => setOAuthProviders({ google: false, facebook: false }));
+  }, []);
+
+  const handleOAuth = (provider) => {
+    setError(null);
+    try {
+      startOAuth(provider);
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -185,23 +212,23 @@ export default function CampusLinkLogin() {
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          {/* Pas d'OAuth côté backend pour l'instant : boutons conservés mais
-              explicitement inactifs plutôt que cliquables sans effet. */}
           <button
             type="button"
-            disabled
-            title="Connexion OAuth bientôt disponible"
-            aria-label="Continuer avec Google (bientôt disponible)"
-            className="flex items-center justify-center py-2.5 rounded-lg border border-slate-200 opacity-50 cursor-not-allowed"
+            disabled={!oauthProviders?.google}
+            onClick={() => handleOAuth("google")}
+            title={oauthProviders?.google ? "Continuer avec Google" : "Google OAuth n'est pas configuré"}
+            aria-label="Continuer avec Google"
+            className="flex items-center justify-center py-2.5 rounded-lg border border-slate-200 enabled:hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <GoogleIcon />
           </button>
           <button
             type="button"
-            disabled
-            title="Connexion OAuth bientôt disponible"
-            aria-label="Continuer avec Facebook (bientôt disponible)"
-            className="flex items-center justify-center py-2.5 rounded-lg border border-slate-200 opacity-50 cursor-not-allowed"
+            disabled={!oauthProviders?.facebook}
+            onClick={() => handleOAuth("facebook")}
+            title={oauthProviders?.facebook ? "Continuer avec Facebook" : "Facebook OAuth n'est pas configuré"}
+            aria-label="Continuer avec Facebook"
+            className="flex items-center justify-center py-2.5 rounded-lg border border-slate-200 enabled:hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <FacebookIcon />
           </button>

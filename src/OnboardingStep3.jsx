@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, X } from "lucide-react";
 import { uploadProfilePhotos } from "./services/profileService";
+import { prepareImageForUpload } from "./lib/imageUtils";
 
 /**
  * CampusLink — Complétez votre profil (Étape 3/3)
@@ -35,6 +36,7 @@ export default function OnboardingStep3() {
   const [previews, setPreviews] = useState([]);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
+  const [photoError, setPhotoError] = useState(null);
 
   // Création / libération des URLs d'aperçu en fonction des fichiers sélectionnés.
   useEffect(() => {
@@ -43,10 +45,32 @@ export default function OnboardingStep3() {
     return () => urls.forEach((url) => URL.revokeObjectURL(url));
   }, [files]);
 
-  const addPhotos = (e) => {
+  /**
+   * Chaque photo est validée et compressée à la sélection (règles backend :
+   * JPG/PNG/WebP, 5 Mo max) pour qu'aucun envoi échoue au moment de
+   * « Terminer ».
+   */
+  const addPhotos = async (e) => {
     const selected = Array.from(e.target.files || []);
-    setFiles((prev) => [...prev, ...selected].slice(0, MAX_PHOTOS));
     e.target.value = "";
+    if (selected.length === 0) return;
+
+    setPhotoError(null);
+    const prepared = [];
+    const rejected = [];
+    for (const file of selected) {
+      try {
+        prepared.push(await prepareImageForUpload(file));
+      } catch (err) {
+        rejected.push(`${file.name} (${err.message})`);
+      }
+    }
+    if (rejected.length > 0) {
+      setPhotoError(`Photo(s) refusée(s) : ${rejected.join(", ")}`);
+    }
+    if (prepared.length > 0) {
+      setFiles((prev) => [...prev, ...prepared].slice(0, MAX_PHOTOS));
+    }
   };
 
   const removePhoto = (index) => {
@@ -129,6 +153,7 @@ export default function OnboardingStep3() {
           ))}
         </div>
 
+        {photoError && <p className="text-sm text-rose-500 mb-4">{photoError}</p>}
         {submitError && <p className="text-sm text-rose-500 mb-4">{submitError}</p>}
 
         <div className="flex gap-3">

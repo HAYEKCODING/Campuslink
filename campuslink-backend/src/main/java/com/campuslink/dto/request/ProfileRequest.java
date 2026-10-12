@@ -1,6 +1,7 @@
 package com.campuslink.dto.request;
 
 import com.campuslink.enums.Gender;
+import com.campuslink.enums.StudyLevel;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Size;
@@ -44,6 +45,12 @@ public class ProfileRequest {
      * la valeur collectée à l'onboarding était perdue silencieusement.
      */
     private Gender gender;
+
+    /**
+     * Niveau d'étude — sélecteur de l'onboarding étape 1 (repris après
+     * l'ajout de la colonne {@code profiles.level}).
+     */
+    private StudyLevel level;
 
     /**
      * Utilisée uniquement pour calculer l'âge exposé dans {@code ProfileResponse}

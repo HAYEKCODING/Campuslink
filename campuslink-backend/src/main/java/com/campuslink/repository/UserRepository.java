@@ -23,6 +23,13 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
 
     Optional<User> findByLegacyId(Long legacyId);
 
+    /**
+     * Vérifie l'existence d'une cible du module temps réel (likes, signalements)
+     * avant toute écriture : sans ce contrôle, un {@code cibleId} inconnu
+     * provoquerait une violation de contrainte FK en base → 500 au lieu de 404.
+     */
+    boolean existsByLegacyId(Long legacyId);
+
     boolean existsByEmail(String email);
 
     long countByStatus(AccountStatus status);

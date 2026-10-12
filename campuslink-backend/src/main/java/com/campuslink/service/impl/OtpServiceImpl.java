@@ -85,7 +85,7 @@ public class OtpServiceImpl implements OtpService {
 
         emailService.sendOtpCode(user, code, type, (int) otpProperties.getExpirationMinutes());
 
-        log.info("Code OTP ({}) généré et envoyé pour {}", type, email);
+        log.info("Code OTP ({}) généré et envoyé pour {}", type, EmailMasker.mask(email));
 
         return OtpResponse.builder()
                 .email(EmailMasker.mask(email))
@@ -132,7 +132,7 @@ public class OtpServiceImpl implements OtpService {
 
         applySideEffects(user, type);
 
-        log.info("Code OTP ({}) vérifié avec succès pour {}", type, email);
+        log.info("Code OTP ({}) vérifié avec succès pour {}", type, EmailMasker.mask(email));
     }
 
     /**
