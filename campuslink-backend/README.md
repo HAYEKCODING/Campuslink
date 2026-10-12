@@ -720,6 +720,7 @@ Voir le fichier [`.env.example`](./.env.example) pour la liste complète.
    | `WEBRTC_STUN_URLS` | `stun:stun.l.google.com:19302` (ou service STUN choisi) |
    | `WEBRTC_TURN_URLS` | URI du serveur TURN, si disponible |
    | `WEBRTC_TURN_SHARED_SECRET` | Secret partagé privé du serveur TURN compatible coturn REST |
+   | `JAVA_TOOL_OPTIONS` | Par défaut dans le Dockerfile : heap max à 60 % de la mémoire du conteneur, initial à 20 %, Serial GC. Augmenter la mémoire du service Render si le démarrage échoue encore avec `Java heap space`. |
 
 4. Aucun disque persistant Render n'est nécessaire pour les pièces jointes stockées sur Cloudinary.
 5. Sur une base Neon existante, exécuter `database/migration-chat-media.postgresql.sql`, puis `database/migration-profile-preferences.postgresql.sql` (si ce n'est pas déjà fait)

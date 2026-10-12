@@ -16,6 +16,10 @@ USER campuslink
 
 EXPOSE 8080
 
+# Keep the Java heap within the container memory limit on small instances.
+# JAVA_TOOL_OPTIONS can be overridden from the hosting platform when needed.
+ENV JAVA_TOOL_OPTIONS="-XX:MaxRAMPercentage=60.0 -XX:InitialRAMPercentage=20.0 -XX:+UseSerialGC"
+
 HEALTHCHECK --interval=15s --timeout=5s --start-period=40s --retries=5 \
     CMD wget -qO- http://localhost:8080/api/actuator/health | grep -q '"status":"UP"' || exit 1
 
