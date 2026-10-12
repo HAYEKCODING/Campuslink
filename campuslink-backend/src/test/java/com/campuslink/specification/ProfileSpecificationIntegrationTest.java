@@ -13,6 +13,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
@@ -41,6 +42,8 @@ class ProfileSpecificationIntegrationTest {
         User user = User.builder()
                 .email(firstName.toLowerCase() + "@campuslink.io")
                 .password("hashed-password")
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
                 .build();
         entityManager.persist(user);
 
@@ -48,6 +51,8 @@ class ProfileSpecificationIntegrationTest {
                 .firstName(firstName)
                 .lastName("Test")
                 .dateOfBirth(LocalDate.now().minusYears(age))
+                .createdAt(Instant.now())
+                .updatedAt(Instant.now())
                 .university(university)
                 .city(city)
                 .interests(interests.length > 0 ? new HashSet<>(Set.of(interests)) : new HashSet<>())
@@ -68,6 +73,19 @@ class ProfileSpecificationIntegrationTest {
         List<Profile> results = profileRepository.findAll(specification);
 
         assertThat(results).hasSize(2);
+    }
+
+    @Test
+    void shouldExcludeProfilesMarkedNotVisible() {
+        Profile hidden = persistProfile("Awa", 20, "UFHB", "Bouake");
+        persistProfile("Moussa", 22, "INP-HB", "Yamoussoukro");
+        hidden.setProfileVisible(false);
+        entityManager.flush();
+
+        List<Profile> results = profileRepository.findAll(
+                ProfileSpecification.withCriteria(ProfileSearchCriteria.builder().build()));
+
+        assertThat(results).extracting(Profile::getFirstName).containsExactly("Moussa");
     }
 
     @Test

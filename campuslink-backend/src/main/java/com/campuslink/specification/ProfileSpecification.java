@@ -35,6 +35,8 @@ public final class ProfileSpecification {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
 
+            predicates.add(criteriaBuilder.isTrue(root.get("profileVisible")));
+
             // ===================== Âge (traduit en bornes de date de naissance) =====================
             // L'entité ne porte pas de colonne "âge" (voir Profile.dateOfBirth et
             // ProfileMapper.dateOfBirthToAge) : le filtre se traduit donc en comparaison

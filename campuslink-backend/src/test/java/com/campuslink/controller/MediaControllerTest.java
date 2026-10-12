@@ -13,6 +13,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.file.Files;
@@ -48,6 +49,9 @@ class MediaControllerTest {
     /** Voir {@link AuthControllerTest} : nécessaire pour la slice {@code @WebMvcTest}. */
     @MockBean
     private JwtService jwtService;
+
+    @MockBean
+    private UserDetailsService userDetailsService;
 
     // ===================== GET /media/files/{filename} =====================
 

@@ -52,7 +52,6 @@ export const INTERESTS = [
 export const GENDERS = [
   { value: "MALE", label: "Homme" },
   { value: "FEMALE", label: "Femme" },
-  { value: "OTHER", label: "Autre" },
 ];
 
 /**

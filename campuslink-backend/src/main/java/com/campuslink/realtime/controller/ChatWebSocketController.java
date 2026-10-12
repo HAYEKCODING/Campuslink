@@ -1,11 +1,17 @@
 package com.campuslink.realtime.controller;
 
+import com.campuslink.exception.DuplicateResourceException;
 import com.campuslink.realtime.dto.request.MessageRequest;
 import com.campuslink.realtime.dto.request.TypingEvent;
 import com.campuslink.realtime.dto.response.TypingNotification;
+import com.campuslink.realtime.entity.Match;
+import com.campuslink.realtime.entity.enums.MatchStatus;
+import com.campuslink.realtime.service.MatchService;
 import com.campuslink.realtime.service.MessageService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
 
@@ -29,10 +35,11 @@ import java.security.Principal;
 public class ChatWebSocketController {
 
     private final MessageService messageService;
+    private final MatchService matchService;
     private final SimpMessagingTemplate messagingTemplate;
 
     @MessageMapping("/chat.send")
-    public void envoyerMessage(MessageRequest request, Principal principal) {
+    public void envoyerMessage(@Valid @Payload MessageRequest request, Principal principal) {
         Long expediteurId = Long.valueOf(principal.getName());
         messageService.envoyer(expediteurId, request.getMatchId(), request.getContenu());
     }
@@ -40,6 +47,11 @@ public class ChatWebSocketController {
     @MessageMapping("/chat.typing")
     public void diffuserTyping(TypingEvent event, Principal principal) {
         Long userId = Long.valueOf(principal.getName());
+        Match match = matchService.getMatchOuException(event.getMatchId());
+        matchService.verifierParticipant(match, userId);
+        if (match.getStatut() != MatchStatus.ACTIF) {
+            throw new DuplicateResourceException("Ce match n'est plus actif : messagerie indisponible");
+        }
         TypingNotification notification = TypingNotification.builder()
                 .matchId(event.getMatchId())
                 .utilisateurId(userId)

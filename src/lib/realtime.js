@@ -154,6 +154,9 @@ class RealtimeClient {
 
   onDisconnect(cb) {
     this.listeners.disconnect.push(cb);
+    return () => {
+      this.listeners.disconnect = this.listeners.disconnect.filter((fn) => fn !== cb);
+    };
   }
 }
 
@@ -196,3 +199,6 @@ export function sendTyping(matchId, enTrainDecrire) {
   });
 }
 
+export function sendCallSignal(payload) {
+  return getRealtimeClient().publish("/app/calls.signal", payload);
+}

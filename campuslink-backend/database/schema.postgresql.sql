@@ -80,6 +80,11 @@ CREATE TABLE IF NOT EXISTS profiles (
     graduation_year   INTEGER,
     city              VARCHAR(100),
     neighborhood      VARCHAR(100),
+    profile_visible   BOOLEAN      NOT NULL DEFAULT TRUE,
+    notification_likes BOOLEAN     NOT NULL DEFAULT TRUE,
+    notification_matches BOOLEAN  NOT NULL DEFAULT TRUE,
+    notification_messages BOOLEAN NOT NULL DEFAULT TRUE,
+    notification_reports BOOLEAN  NOT NULL DEFAULT TRUE,
     created_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
     updated_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
 
@@ -88,7 +93,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     CONSTRAINT fk_profiles_user FOREIGN KEY (user_id)
         REFERENCES users (id) ON DELETE CASCADE,
     CONSTRAINT ck_profiles_gender CHECK (
-        gender IS NULL OR gender IN ('MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY')
+        gender IS NULL OR gender IN ('MALE', 'FEMALE')
     ),
     CONSTRAINT ck_profiles_level CHECK (
         level IS NULL OR level IN ('LICENCE', 'MASTER', 'DOCTORAT')
@@ -108,10 +113,34 @@ CREATE TABLE IF NOT EXISTS profiles (
 -- de cette colonne (une exécution sur schéma neuf la trouve déjà déclarée ci-dessus).
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS neighborhood VARCHAR(100);
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS level VARCHAR(20);
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS profile_visible BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS notification_likes BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS notification_matches BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS notification_messages BOOLEAN NOT NULL DEFAULT TRUE;
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS notification_reports BOOLEAN NOT NULL DEFAULT TRUE;
 
 COMMENT ON TABLE profiles IS 'Informations personnelles et académiques (1-1 avec users)';
 
 CREATE INDEX IF NOT EXISTS idx_profiles_user_id ON profiles (user_id);
+
+-- ============================================================================
+-- TABLE : oauth_identities
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS oauth_identities (
+    id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    provider          VARCHAR(20)  NOT NULL,
+    provider_user_id  VARCHAR(255) NOT NULL,
+    user_id           UUID         NOT NULL,
+    created_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
+    updated_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
+
+    CONSTRAINT uk_oauth_identity_provider_subject UNIQUE (provider, provider_user_id),
+    CONSTRAINT uk_oauth_identity_user_provider UNIQUE (user_id, provider),
+    CONSTRAINT fk_oauth_identity_user FOREIGN KEY (user_id)
+        REFERENCES users (id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_oauth_identity_user_id ON oauth_identities (user_id);
 
 -- ============================================================================
 -- TABLE : profile_interests
@@ -322,11 +351,16 @@ CREATE TABLE IF NOT EXISTS messages (
     date_envoi       TIMESTAMP NOT NULL DEFAULT now(),
     statut_lecture   VARCHAR(20) NOT NULL DEFAULT 'ENVOYE',
     date_lecture     TIMESTAMP,
+    media_storage_key VARCHAR(120),
+    media_original_name VARCHAR(255),
+    media_content_type VARCHAR(120),
+    media_size_bytes BIGINT,
     CONSTRAINT ck_message_statut CHECK (statut_lecture IN ('ENVOYE', 'RECU', 'LU'))
 );
 CREATE INDEX IF NOT EXISTS idx_message_match       ON messages(match_id);
 CREATE INDEX IF NOT EXISTS idx_message_expediteur  ON messages(expediteur_id);
 CREATE INDEX IF NOT EXISTS idx_message_date_envoi  ON messages(date_envoi);
+CREATE INDEX IF NOT EXISTS idx_message_match_media ON messages(match_id, media_content_type);
 
 CREATE TABLE IF NOT EXISTS notifications (
     id             BIGSERIAL PRIMARY KEY,

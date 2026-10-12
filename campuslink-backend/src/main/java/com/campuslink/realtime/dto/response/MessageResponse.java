@@ -19,4 +19,5 @@ public class MessageResponse {
     private String contenu;
     private Instant dateEnvoi;
     private MessageStatus statutLecture;
+    private ChatMediaResponse media;
 }

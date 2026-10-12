@@ -3,6 +3,7 @@ package com.campuslink.realtime.service.impl;
 import com.campuslink.realtime.dto.response.LikeResponse;
 import com.campuslink.realtime.entity.Like;
 import com.campuslink.realtime.entity.Match;
+import com.campuslink.realtime.entity.enums.MatchStatus;
 import com.campuslink.realtime.entity.enums.NotificationType;
 import com.campuslink.exception.DuplicateResourceException;
 import com.campuslink.exception.ResourceNotFoundException;
@@ -62,13 +63,16 @@ public class LikeServiceImpl implements LikeService {
         boolean matchCree = false;
         if (likeRepository.existsByEmetteurIdAndCibleId(cibleId, emetteurId)) {
             // La cible avait deja like l'emetteur -> match mutuel
+            boolean matchExistant = matchService.trouverEntre(emetteurId, cibleId).isPresent();
             Match match = matchService.creerSiAbsent(emetteurId, cibleId);
-            matchCree = true;
+            matchCree = !matchExistant && match.getStatut() == MatchStatus.ACTIF;
 
-            notificationService.creerEtEnvoyer(
-                    emetteurId, NotificationType.MATCH, "Vous avez un nouveau match !", match.getId());
-            notificationService.creerEtEnvoyer(
-                    cibleId, NotificationType.MATCH, "Vous avez un nouveau match !", match.getId());
+            if (matchCree) {
+                notificationService.creerEtEnvoyer(
+                        emetteurId, NotificationType.MATCH, "Vous avez un nouveau match !", match.getId());
+                notificationService.creerEtEnvoyer(
+                        cibleId, NotificationType.MATCH, "Vous avez un nouveau match !", match.getId());
+            }
         }
 
         return LikeResponse.builder()

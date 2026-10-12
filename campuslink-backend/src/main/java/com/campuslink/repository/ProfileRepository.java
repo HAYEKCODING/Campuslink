@@ -25,6 +25,8 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID>, JpaSpec
      */
     Optional<Profile> findByUserId(UUID userId);
 
+    Optional<Profile> findByUser_LegacyId(Long legacyId);
+
     // ===================== Contenu public de la landing (PublicContentService) =====================
 
     /**
@@ -59,4 +61,3 @@ public interface ProfileRepository extends JpaRepository<Profile, UUID>, JpaSpec
     List<String> findDistinctInterests();
 
 }
-

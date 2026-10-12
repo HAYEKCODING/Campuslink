@@ -3,6 +3,7 @@ package com.campuslink.realtime.service;
 import com.campuslink.realtime.dto.response.LikeResponse;
 import com.campuslink.realtime.entity.Like;
 import com.campuslink.realtime.entity.Match;
+import com.campuslink.realtime.entity.enums.MatchStatus;
 import com.campuslink.realtime.entity.enums.NotificationType;
 import com.campuslink.exception.DuplicateResourceException;
 import com.campuslink.exception.ResourceNotFoundException;
@@ -17,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -74,6 +76,7 @@ class LikeServiceImplTest {
         when(likeRepository.existsByEmetteurIdAndCibleId(CIBLE, EMETTEUR)).thenReturn(true);
 
         Match match = Match.builder().id(50L).utilisateur1Id(EMETTEUR).utilisateur2Id(CIBLE).build();
+        when(matchService.trouverEntre(EMETTEUR, CIBLE)).thenReturn(Optional.empty());
         when(matchService.creerSiAbsent(EMETTEUR, CIBLE)).thenReturn(match);
 
         LikeResponse response = likeService.liker(EMETTEUR, CIBLE);
@@ -82,6 +85,25 @@ class LikeServiceImplTest {
         verify(matchService).creerSiAbsent(EMETTEUR, CIBLE);
         verify(notificationService).creerEtEnvoyer(eq(EMETTEUR), eq(NotificationType.MATCH), any(), eq(50L));
         verify(notificationService).creerEtEnvoyer(eq(CIBLE), eq(NotificationType.MATCH), any(), eq(50L));
+    }
+
+    @Test
+    void liker_neGenerePasDeSecondeNotificationMatchSiLeMatchExisteDeja() {
+        when(likeRepository.existsByEmetteurIdAndCibleId(EMETTEUR, CIBLE)).thenReturn(false);
+        when(likeRepository.existsByEmetteurIdAndCibleId(CIBLE, EMETTEUR)).thenReturn(true);
+        Match match = Match.builder()
+                .id(50L)
+                .utilisateur1Id(EMETTEUR)
+                .utilisateur2Id(CIBLE)
+                .statut(MatchStatus.ACTIF)
+                .build();
+        when(matchService.trouverEntre(EMETTEUR, CIBLE)).thenReturn(Optional.of(match));
+        when(matchService.creerSiAbsent(EMETTEUR, CIBLE)).thenReturn(match);
+
+        LikeResponse response = likeService.liker(EMETTEUR, CIBLE);
+
+        assertThat(response.isMatchCree()).isFalse();
+        verify(notificationService, never()).creerEtEnvoyer(any(), eq(NotificationType.MATCH), any(), any());
     }
 
     @Test

@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -53,6 +54,9 @@ class MessageControllerTest {
     /** Voir {@link com.campuslink.controller.AuthControllerTest} : nécessaire pour la slice {@code @WebMvcTest}. */
     @MockBean
     private JwtService jwtService;
+
+    @MockBean
+    private UserDetailsService userDetailsService;
 
     @AfterEach
     void clearSecurityContext() {

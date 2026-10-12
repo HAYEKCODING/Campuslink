@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Camera, Calendar } from "lucide-react";
 import { useAsyncData } from "./hooks/useAsyncData";
-import { getUniversities, getFaculties, uploadAvatar, updateProfile } from "./services/profileService";
+import { getUniversities, getFaculties, getMyProfile, uploadAvatar, updateProfile } from "./services/profileService";
 import { LEVELS } from "./lib/referenceData";
 import { prepareImageForUpload } from "./lib/imageUtils";
 
@@ -73,6 +73,19 @@ export default function OnboardingStep1() {
 
   const { data: universities } = useAsyncData(() => getUniversities(), []);
   const { data: faculties } = useAsyncData(() => getFaculties(), []);
+  const {
+    data: existingProfile,
+    loading: profileLoading,
+    error: profileError,
+  } = useAsyncData(() => getMyProfile(), []);
+
+  useEffect(() => {
+    if (!existingProfile) return;
+    setBirthDate(existingProfile.dateOfBirth || "");
+    setUniversity(existingProfile.university || "");
+    setFaculty(existingProfile.fieldOfStudy || "");
+    setLevel(existingProfile.level || "");
+  }, [existingProfile]);
 
   // L'aperçu est révoqué au changement / démontage pour ne pas fuiter d'objet URL.
   useEffect(() => {
@@ -109,6 +122,10 @@ export default function OnboardingStep1() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitError(null);
+    if (profileLoading || profileError || !existingProfile) {
+      setSubmitError(profileError || "Impossible de charger votre profil. Réessayez avant de continuer.");
+      return;
+    }
 
     // Messages explicites par champ : « compléter tous les champs » laissait
     // l'utilisateur bloqué sans savoir lequel des champs (souvent la date,
@@ -158,9 +175,9 @@ export default function OnboardingStep1() {
             htmlFor="profile-photo"
             className="w-24 h-24 rounded-full bg-violet-50 flex items-center justify-center mb-3 hover:bg-violet-100 transition-colors cursor-pointer overflow-hidden"
           >
-            {previewUrl ? (
+            {previewUrl || existingProfile?.photo ? (
               <img
-                src={previewUrl}
+                src={previewUrl || existingProfile.photo}
                 alt="Aperçu de la photo de profil"
                 className="w-full h-full object-cover"
               />
@@ -178,6 +195,11 @@ export default function OnboardingStep1() {
           <p className="text-sm font-semibold text-violet-600">Ajouter une photo</p>
           <p className="text-xs text-slate-400 mt-0.5">JPG, PNG, max. 5Mo</p>
           {photoError && <p className="text-xs text-rose-500 mt-1.5">{photoError}</p>}
+          {profileError && (
+            <p role="alert" className="text-xs text-rose-500 mt-1.5">
+              Impossible de charger votre profil : {profileError}
+            </p>
+          )}
         </div>
 
         <form className="space-y-5" onSubmit={handleSubmit}>
@@ -238,7 +260,7 @@ export default function OnboardingStep1() {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || profileLoading || Boolean(profileError)}
             className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg mt-2 disabled:opacity-60"
           >
             {submitting ? "Enregistrement..." : "Suivant"}

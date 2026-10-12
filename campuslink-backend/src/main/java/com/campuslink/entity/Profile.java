@@ -133,6 +133,26 @@ public class Profile extends BaseEntity {
     @Column(name = "neighborhood", length = 100)
     private String neighborhood;
 
+    @Column(name = "profile_visible", nullable = false)
+    @Builder.Default
+    private boolean profileVisible = true;
+
+    @Column(name = "notification_likes", nullable = false)
+    @Builder.Default
+    private boolean notificationLikes = true;
+
+    @Column(name = "notification_matches", nullable = false)
+    @Builder.Default
+    private boolean notificationMatches = true;
+
+    @Column(name = "notification_messages", nullable = false)
+    @Builder.Default
+    private boolean notificationMessages = true;
+
+    @Column(name = "notification_reports", nullable = false)
+    @Builder.Default
+    private boolean notificationReports = true;
+
     /**
      * Centres d'intérêt (tags libres). Stockés dans une table de collection
      * dédiée ({@code profile_interests}) plutôt qu'en chaîne concaténée :

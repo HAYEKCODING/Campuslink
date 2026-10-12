@@ -21,6 +21,8 @@ public final class SecurityConstants {
      */
     public static final String[] PUBLIC_ENDPOINTS = {
             "/auth/**",
+            "/oauth2/**",
+            "/login/oauth2/**",
             "/otp/**",
             "/profiles/*/public",
             "/profiles/search",

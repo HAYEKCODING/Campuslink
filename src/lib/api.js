@@ -109,7 +109,14 @@ async function tryRefreshToken() {
   }
 }
 
-async function request(path, { method = "GET", body, headers = {}, skipAuthRetry = false, ...rest } = {}) {
+async function request(path, {
+  method = "GET",
+  body,
+  headers = {},
+  skipAuthRetry = false,
+  responseType = "json",
+  ...rest
+} = {}) {
   // Les routes /auth/* (login, register, reset...) renvoient un 401 métier
   // ("Identifiants invalides.") : ce n'est pas une session expirée.
   const isAuthRoute = path.startsWith("/auth/");
@@ -166,6 +173,7 @@ async function request(path, { method = "GET", body, headers = {}, skipAuthRetry
   }
 
   if (response.status === 204) return null;
+  if (responseType === "blob") return response.blob();
   return unwrap(await response.json());
 }
 

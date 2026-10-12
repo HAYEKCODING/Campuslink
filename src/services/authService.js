@@ -13,16 +13,29 @@ import { api, setAuthTokens, isAuthenticated } from "../lib/api";
  * (à ajouter côté backend si besoin plus tard).
  */
 
-export async function signup({ fullName, firstName, email, password, confirmPassword }) {
+export async function signup({ fullName, firstName, email, password, confirmPassword, gender }) {
   await api.post("/auth/register", {
     email,
     password,
     confirmPassword: confirmPassword ?? password,
     firstName,
     lastName: fullName, // le champ "Nom complet" du formulaire sert de nom de famille
+    gender,
   });
 
   return login({ email, password });
+}
+
+export function getOAuthProviders() {
+  return api.get("/auth/providers");
+}
+
+export function startOAuth(provider) {
+  if (provider !== "google" && provider !== "facebook") {
+    throw new Error("Fournisseur de connexion non pris en charge.");
+  }
+  const apiBaseUrl = import.meta.env.VITE_API_URL || "/api";
+  window.location.assign(`${apiBaseUrl}/oauth2/authorization/${provider}`);
 }
 
 export async function login({ email, password }) {

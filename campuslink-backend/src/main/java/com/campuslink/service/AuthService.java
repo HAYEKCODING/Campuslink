@@ -4,6 +4,7 @@ import com.campuslink.dto.request.LoginRequest;
 import com.campuslink.dto.request.RefreshTokenRequest;
 import com.campuslink.dto.request.RegisterRequest;
 import com.campuslink.dto.response.AuthResponse;
+import com.campuslink.dto.response.OAuthLoginResult;
 import com.campuslink.dto.response.UserResponse;
 
 /**
@@ -27,6 +28,10 @@ public interface AuthService {
      * paire de tokens (access + refresh).
      */
     AuthResponse login(LoginRequest request);
+
+    OAuthLoginResult loginWithOAuth(
+            String provider, String providerUserId, String email,
+            String firstName, String lastName, boolean emailVerified);
 
     /**
      * Échange un refresh token valide contre une nouvelle paire de tokens.

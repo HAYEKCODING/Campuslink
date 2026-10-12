@@ -17,6 +17,7 @@ public class NotificationResponse {
     private NotificationType type;
     private String contenu;
     private Long referenceId;
+    private String navigationUrl;
     private boolean lu;
     private Instant dateCreation;
 }

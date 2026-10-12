@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate } from "react-route
 import CampusLinkLanding from "./CampusLinkLanding";
 import CampusLinkSignup from "./CampusLinkSignup";
 import CampusLinkLogin from "./CampusLinkLogin";
+import OAuthCallback from "./OAuthCallback";
 import ResetPasswordPage from "./ResetPasswordPage";
 import OnboardingStep1 from "./OnboardingStep1";
 import OnboardingStep2 from "./OnboardingStep2";
@@ -17,6 +18,8 @@ import MyMatches from "./MyMatches";
 import Settings from "./Settings";
 import { isAuthenticated, logout } from "./services/authService";
 import { getRealtimeClient } from "./lib/realtime";
+import { notifyNotificationsChanged } from "./services/settingsService";
+import CallManager from "./components/CallManager";
 
 /**
  * CampusLink — Routeur principal
@@ -72,6 +75,13 @@ function RealtimeSession() {
   useEffect(() => {
     const rt = getRealtimeClient();
     if (isAuthenticated()) rt.connect();
+    const notificationSubscription = rt.subscribeUser("/queue/notifications", (frame) => {
+      try {
+        notifyNotificationsChanged(JSON.parse(frame.body));
+      } catch (error) {
+        console.error("Notification temps réel invalide.", error);
+      }
+    });
 
     const handleLogin = () => rt.connect();
     const handleLogout = () => rt.deactivate();
@@ -81,6 +91,7 @@ function RealtimeSession() {
     return () => {
       window.removeEventListener("campuslink:authenticated", handleLogin);
       window.removeEventListener("campuslink:logged-out", handleLogout);
+      notificationSubscription.unsubscribe();
       rt.deactivate();
     };
   }, []);
@@ -93,11 +104,13 @@ export default function App() {
     <BrowserRouter>
       <UnauthorizedListener />
       <RealtimeSession />
+      <CallManager />
       <Routes>
         {/* Public */}
         <Route path="/" element={<CampusLinkLanding />} />
         <Route path="/inscription" element={<CampusLinkSignup />} />
         <Route path="/connexion" element={<CampusLinkLogin />} />
+        <Route path="/oauth/callback" element={<OAuthCallback />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Onboarding */}

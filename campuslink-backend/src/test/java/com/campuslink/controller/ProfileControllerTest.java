@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
@@ -79,6 +80,9 @@ class ProfileControllerTest {
      */
     @MockBean
     private JwtService jwtService;
+
+    @MockBean
+    private UserDetailsService userDetailsService;
 
     /**
      * Construit le post-processor qui authentifie la requête MockMvc.

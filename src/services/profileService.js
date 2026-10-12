@@ -114,7 +114,9 @@ const LEVEL_TO_API = { Licence: "LICENCE", Master: "MASTER", Doctorat: "DOCTORAT
  * (LICENCE/MASTER/DOCTORAT).
  */
 export async function updateProfile(partialData) {
-  const current = await getMyProfile().catch(() => ({}));
+  // Never continue with an empty fallback: a failed read followed by PUT could
+  // replace valid server-side values with null or undefined fields.
+  const current = await getMyProfile();
 
   const gender =
     partialData.gender === undefined
@@ -132,8 +134,8 @@ export async function updateProfile(partialData) {
 
   const merged = {
     avatarUrl: partialData.photo ?? partialData.avatarUrl ?? current.avatarUrl ?? null,
-    firstName: current.firstName,
-    lastName: current.lastName,
+    firstName: partialData.firstName ?? current.firstName,
+    lastName: partialData.lastName ?? current.lastName,
     gender,
     level,
     dateOfBirth: partialData.birthDate ?? partialData.dateOfBirth ?? current.dateOfBirth ?? null,

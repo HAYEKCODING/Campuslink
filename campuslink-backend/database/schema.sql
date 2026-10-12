@@ -127,6 +127,11 @@ CREATE TABLE IF NOT EXISTS profiles (
     graduation_year   INTEGER,
     city              VARCHAR(100),
     neighborhood      VARCHAR(100),
+    profile_visible   TINYINT(1) NOT NULL DEFAULT 1,
+    notification_likes TINYINT(1) NOT NULL DEFAULT 1,
+    notification_matches TINYINT(1) NOT NULL DEFAULT 1,
+    notification_messages TINYINT(1) NOT NULL DEFAULT 1,
+    notification_reports TINYINT(1) NOT NULL DEFAULT 1,
     created_at        DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at        DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
                                        ON UPDATE CURRENT_TIMESTAMP(6),
@@ -134,7 +139,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     CONSTRAINT uk_profiles_user_id      UNIQUE (user_id),
     CONSTRAINT uk_profiles_phone_number UNIQUE (phone_number),
     CONSTRAINT ck_profiles_gender CHECK (
-        gender IS NULL OR gender IN ('MALE', 'FEMALE', 'OTHER', 'PREFER_NOT_TO_SAY')
+        gender IS NULL OR gender IN ('MALE', 'FEMALE')
     ),
     CONSTRAINT ck_profiles_level CHECK (
         level IS NULL OR level IN ('LICENCE', 'MASTER', 'DOCTORAT')
@@ -153,6 +158,22 @@ CREATE TABLE IF NOT EXISTS profiles (
   COMMENT='Informations personnelles et académiques (1-1 avec users)';
 
 CALL campuslink_create_index('profiles', 'idx_profiles_user_id', 'user_id');
+
+CREATE TABLE IF NOT EXISTS oauth_identities (
+    id                BINARY(16)     PRIMARY KEY,
+    provider          VARCHAR(20)  NOT NULL,
+    provider_user_id  VARCHAR(255) NOT NULL,
+    user_id           BINARY(16)     NOT NULL,
+    created_at        DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
+    updated_at        DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
+                                     ON UPDATE CURRENT_TIMESTAMP(6),
+    CONSTRAINT uk_oauth_identity_provider_subject UNIQUE (provider, provider_user_id),
+    CONSTRAINT uk_oauth_identity_user_provider UNIQUE (user_id, provider),
+    CONSTRAINT fk_oauth_identity_user FOREIGN KEY (user_id)
+        REFERENCES users (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CALL campuslink_create_index('oauth_identities', 'idx_oauth_identity_user_id', 'user_id');
 
 -- ============================================================================
 -- TABLE : profile_interests
@@ -328,6 +349,10 @@ CREATE TABLE IF NOT EXISTS messages (
     date_envoi       DATETIME(6)  NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     statut_lecture   VARCHAR(20)  NOT NULL DEFAULT 'ENVOYE',
     date_lecture     DATETIME(6),
+    media_storage_key VARCHAR(120),
+    media_original_name VARCHAR(255),
+    media_content_type VARCHAR(120),
+    media_size_bytes BIGINT,
     CONSTRAINT ck_message_statut CHECK (statut_lecture IN ('ENVOYE', 'RECU', 'LU')),
     CONSTRAINT fk_message_match FOREIGN KEY (match_id)
         REFERENCES matches (id) ON DELETE CASCADE,
@@ -338,6 +363,7 @@ CREATE TABLE IF NOT EXISTS messages (
 CALL campuslink_create_index('messages', 'idx_message_match', 'match_id');
 CALL campuslink_create_index('messages', 'idx_message_expediteur', 'expediteur_id');
 CALL campuslink_create_index('messages', 'idx_message_date_envoi', 'date_envoi');
+CALL campuslink_create_index('messages', 'idx_message_match_media', 'match_id, media_content_type');
 
 CREATE TABLE IF NOT EXISTS notifications (
     id             BIGINT       NOT NULL AUTO_INCREMENT PRIMARY KEY,

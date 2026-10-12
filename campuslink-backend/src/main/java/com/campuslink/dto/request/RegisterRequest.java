@@ -1,6 +1,7 @@
 package com.campuslink.dto.request;
 
 import com.campuslink.validation.FieldMatch;
+import com.campuslink.enums.Gender;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -54,5 +55,7 @@ public class RegisterRequest {
     @NotBlank(message = "Le nom est obligatoire.")
     @Size(max = 100, message = "Le nom ne doit pas dépasser 100 caractères.")
     private String lastName;
+
+    private Gender gender;
 
 }

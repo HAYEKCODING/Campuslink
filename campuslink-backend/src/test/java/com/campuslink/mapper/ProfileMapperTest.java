@@ -14,23 +14,12 @@ import static org.assertj.core.api.Assertions.assertThat;
  * triviale de ce mapper. Le reste (mapping champ à champ) est généré par
  * MapStruct et ne nécessite pas de test dédié.
  *
- * <p>Utilise une implémentation anonyme plutôt que le mapper généré par
- * MapStruct (indisponible sans compilation Maven complète) : {@code dateOfBirthToAge}
- * est une méthode {@code default} autonome, testable indépendamment.</p>
+ * <p>Le mapper généré est aussi utilisé pour vérifier la stratégie de fusion
+ * des valeurs null lors d'une mise à jour partielle.</p>
  */
 class ProfileMapperTest {
 
-    private final ProfileMapper mapper = new ProfileMapper() {
-        @Override
-        public ProfileResponse toProfileResponse(Profile profile) {
-            throw new UnsupportedOperationException("Non exercé par ce test.");
-        }
-
-        @Override
-        public void updateEntityFromRequest(ProfileRequest request, Profile profile) {
-            throw new UnsupportedOperationException("Non exercé par ce test.");
-        }
-    };
+    private final ProfileMapper mapper = new ProfileMapperImpl();
 
     @Test
     void shouldReturnNull_whenDateOfBirthIsNull() {
@@ -47,6 +36,34 @@ class ProfileMapperTest {
     void shouldNotYetIncrementAge_whenBirthdayNotYetReachedThisYear() {
         LocalDate almostTwentyOne = LocalDate.now().minusYears(21).plusDays(1);
         assertThat(mapper.dateOfBirthToAge(almostTwentyOne)).isEqualTo(20);
+    }
+
+    @Test
+    void shouldPreserveUnprovidedValues_whenApplyingPartialUpdate() {
+        Profile profile = Profile.builder()
+                .firstName("Awa")
+                .lastName("Kone")
+                .bio("Bio existante")
+                .interests(java.util.Set.of("Lecture"))
+                .build();
+
+        mapper.updateEntityFromRequest(ProfileRequest.builder().build(), profile);
+
+        assertThat(profile.getFirstName()).isEqualTo("Awa");
+        assertThat(profile.getLastName()).isEqualTo("Kone");
+        assertThat(profile.getBio()).isEqualTo("Bio existante");
+        assertThat(profile.getInterests()).containsExactly("Lecture");
+    }
+
+    @Test
+    void publicProfileMappingDoesNotExposeBirthDate() {
+        Profile profile = Profile.builder()
+                .firstName("Awa")
+                .lastName("Kone")
+                .dateOfBirth(LocalDate.of(2000, 1, 1))
+                .build();
+
+        assertThat(mapper.toPublicProfileResponse(profile).getDateOfBirth()).isNull();
     }
 
 }

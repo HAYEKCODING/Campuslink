@@ -27,6 +27,11 @@ public interface ProfileMapper {
     @Mapping(target = "legacyId", source = "user.legacyId")
     ProfileResponse toProfileResponse(Profile profile);
 
+    @Mapping(target = "age", source = "dateOfBirth", qualifiedByName = "dateOfBirthToAge")
+    @Mapping(target = "legacyId", source = "user.legacyId")
+    @Mapping(target = "dateOfBirth", ignore = true)
+    ProfileResponse toPublicProfileResponse(Profile profile);
+
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)

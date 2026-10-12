@@ -24,7 +24,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
  *
  * <p>Politique appliquée :</p>
  * <ul>
- *     <li>API stateless (aucune session HTTP, authentification 100% JWT)</li>
+ *     <li>API authentifiées par JWT ; session temporaire réservée au state de l'aller-retour OAuth</li>
  *     <li>CSRF désactivé (non pertinent pour une API stateless consommée par des clients JWT
  *         plutôt que par un navigateur avec cookies de session)</li>
  *     <li>CORS délégué à {@link com.campuslink.config.CorsConfig}</li>
@@ -54,6 +54,8 @@ public class SecurityConfig {
     private final JwtAccessDeniedHandler jwtAccessDeniedHandler;
     private final CorsConfigurationSource corsConfigurationSource;
     private final CustomUserDetailsService customUserDetailsService;
+    private final OAuth2LoginSuccessHandler oauth2LoginSuccessHandler;
+    private final OAuth2LoginFailureHandler oauth2LoginFailureHandler;
 
     /**
      * Définit la chaîne de filtres de sécurité appliquée à toutes les requêtes HTTP.
@@ -70,9 +72,9 @@ public class SecurityConfig {
                 // automatiquement par le navigateur).
                 .csrf(AbstractHttpConfigurer::disable)
 
-                // Aucune session HTTP créée ni utilisée : chaque requête est authentifiée
-                // indépendamment via son token JWT.
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // Les API restent authentifiées par JWT; une session HTTP temporaire
+                // est nécessaire uniquement pour protéger l'aller-retour OAuth (state).
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
 
                 // Gestion homogène des erreurs de sécurité (réponses JSON, pas de redirection
                 // vers une page de login qui n'existe pas côté API).
@@ -87,6 +89,10 @@ public class SecurityConfig {
                         .requestMatchers(SecurityConstants.PUBLIC_ENDPOINTS).permitAll()
                         .requestMatchers(SecurityConstants.ADMIN_ENDPOINTS).hasRole("ADMIN")
                         .anyRequest().authenticated())
+
+                .oauth2Login(oauth -> oauth
+                        .successHandler(oauth2LoginSuccessHandler)
+                        .failureHandler(oauth2LoginFailureHandler))
 
                 // Le filtre JWT s'exécute avant le filtre d'authentification par formulaire
                 // standard de Spring Security (que nous n'utilisons pas, mais qui reste

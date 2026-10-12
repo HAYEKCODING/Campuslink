@@ -1,7 +1,12 @@
 package com.campuslink.realtime.security;
 
 import com.campuslink.entity.User;
+import com.campuslink.exception.DuplicateResourceException;
+import com.campuslink.exception.ForbiddenException;
 import com.campuslink.repository.UserRepository;
+import com.campuslink.realtime.entity.Match;
+import com.campuslink.realtime.entity.enums.MatchStatus;
+import com.campuslink.realtime.service.MatchService;
 import com.campuslink.security.JwtService;
 import com.campuslink.security.UserPrincipal;
 import io.jsonwebtoken.JwtException;
@@ -18,6 +23,8 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.stereotype.Component;
 
 import java.security.Principal;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Valide le JWT lors de la trame STOMP CONNECT et attache un Principal à la
@@ -31,8 +38,11 @@ import java.security.Principal;
 @Slf4j
 public class StompAuthChannelInterceptor implements ChannelInterceptor {
 
+    private static final Pattern TYPING_DESTINATION = Pattern.compile("^/topic/matches/(\\d+)/typing$");
+
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final MatchService matchService;
 
     @Override
     public Message<?> preSend(@NonNull Message<?> message, @NonNull MessageChannel channel) {
@@ -71,6 +81,24 @@ public class StompAuthChannelInterceptor implements ChannelInterceptor {
             } catch (JwtException | IllegalArgumentException ex) {
                 log.warn("Connexion WebSocket refusee : {}", ex.getMessage());
                 throw new IllegalArgumentException("Token JWT invalide ou expire", ex);
+            }
+        }
+
+        if (accessor != null && StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+            String destination = accessor.getDestination();
+            if (destination != null) {
+                Matcher typingDestination = TYPING_DESTINATION.matcher(destination);
+                if (typingDestination.matches()) {
+                    Principal principal = accessor.getUser();
+                    if (principal == null) {
+                        throw new ForbiddenException("Authentification requise pour cette conversation");
+                    }
+                    Match match = matchService.getMatchOuException(Long.valueOf(typingDestination.group(1)));
+                    matchService.verifierParticipant(match, Long.valueOf(principal.getName()));
+                    if (match.getStatut() != MatchStatus.ACTIF) {
+                        throw new DuplicateResourceException("Ce match n'est plus actif");
+                    }
+                }
             }
         }
 

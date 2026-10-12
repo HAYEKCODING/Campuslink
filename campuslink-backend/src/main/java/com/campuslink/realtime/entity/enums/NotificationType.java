@@ -4,5 +4,6 @@ public enum NotificationType {
     LIKE,
     MATCH,
     MESSAGE,
+    APPEL,
     SIGNALEMENT
 }

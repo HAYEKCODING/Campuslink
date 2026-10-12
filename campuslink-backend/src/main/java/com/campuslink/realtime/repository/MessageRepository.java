@@ -18,6 +18,39 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
 
     List<Message> findAllByMatchIdOrderByDateEnvoiAsc(Long matchId);
 
+    @Query(
+            value = """
+                    SELECT m FROM Message m
+                    WHERE m.matchId = :matchId AND (
+                        (:category = 'MEDIA' AND m.mediaStorageKey IS NOT NULL
+                            AND (m.mediaContentType LIKE 'image/%' OR m.mediaContentType LIKE 'video/%'))
+                        OR (:category = 'DOCUMENTS' AND m.mediaStorageKey IS NOT NULL
+                            AND m.mediaContentType IN ('application/pdf', 'application/msword',
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'))
+                        OR (:category = 'LINKS' AND m.mediaStorageKey IS NULL AND m.contenu IS NOT NULL
+                            AND (LOWER(m.contenu) LIKE '%http://%' OR LOWER(m.contenu) LIKE '%https://%'))
+                    )
+                    ORDER BY m.dateEnvoi DESC
+                    """,
+            countQuery = """
+                    SELECT COUNT(m) FROM Message m
+                    WHERE m.matchId = :matchId AND (
+                        (:category = 'MEDIA' AND m.mediaStorageKey IS NOT NULL
+                            AND (m.mediaContentType LIKE 'image/%' OR m.mediaContentType LIKE 'video/%'))
+                        OR (:category = 'DOCUMENTS' AND m.mediaStorageKey IS NOT NULL
+                            AND m.mediaContentType IN ('application/pdf', 'application/msword',
+                                'application/vnd.openxmlformats-officedocument.wordprocessingml.document'))
+                        OR (:category = 'LINKS' AND m.mediaStorageKey IS NULL AND m.contenu IS NOT NULL
+                            AND (LOWER(m.contenu) LIKE '%http://%' OR LOWER(m.contenu) LIKE '%https://%'))
+                    )
+                    """
+    )
+    Page<Message> findMediaLibraryItems(@Param("matchId") Long matchId,
+                                        @Param("category") String category,
+                                        Pageable pageable);
+
+    java.util.Optional<Message> findByIdAndMatchId(Long id, Long matchId);
+
     long countByMatchIdAndExpediteurIdNotAndStatutLectureNot(Long matchId, Long expediteurId, MessageStatus statut);
 
     /**

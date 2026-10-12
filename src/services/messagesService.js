@@ -23,3 +23,22 @@ export async function getMessages(matchId) {
 export function sendMessage(matchId, text) {
   return api.post(`/matches/${matchId}/messages`, { matchId, contenu: text });
 }
+
+export function markMessagesRead(matchId) {
+  return api.post(`/matches/${matchId}/messages/lu`);
+}
+
+export function sendChatMedia(matchId, file) {
+  const formData = new FormData();
+  formData.append("file", file);
+  return api.post(`/matches/${matchId}/media`, formData);
+}
+
+export function getChatMediaLibrary(matchId, category, page = 0) {
+  const params = new URLSearchParams({ category, page: String(page), size: "50" });
+  return api.get(`/matches/${matchId}/media?${params.toString()}`);
+}
+
+export function getChatMediaContent(matchId, messageId) {
+  return api.get(`/matches/${matchId}/media/${messageId}/content`, { responseType: "blob" });
+}
