@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Phone, Video, MoreVertical, Smile, Send, Paperclip, FolderOpen,
   FileText, Download, X, ChevronLeft, ChevronRight, ExternalLink, LoaderCircle,
@@ -14,7 +14,12 @@ import { getMyProfile } from "./services/profileService";
 import { getRealtimeClient, sendTyping } from "./lib/realtime";
 import { LoadingState, ErrorState } from "./components/ui/AsyncStates";
 
-const EMOJIS = ["😀", "😂", "🥰", "😍", "😉", "😊", "🤩", "😎", "😭", "😅", "🙏", "👏", "👍", "❤️", "🔥", "🎉", "✨", "💯"];
+const EMOJI_CATEGORIES = [
+  { name: "Visages", emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "🥹", "😊", "😇", "🙂", "🙃", "😉", "😍", "🥰", "😘", "😋", "🤩", "😎", "😭", "😢", "😡", "🤔", "🤗", "🥳", "😴", "🤭"] },
+  { name: "Gestes", emojis: ["👋", "🤚", "✋", "🖐️", "👌", "🤌", "🤏", "✌️", "🤞", "🤟", "🤘", "🤙", "👈", "👉", "👆", "👇", "👍", "👎", "✊", "👏", "🙌", "👐", "🤝", "🙏"] },
+  { name: "Cœurs", emojis: ["❤️", "🩷", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "💟"] },
+  { name: "Divers", emojis: ["🔥", "✨", "⭐", "🌟", "💯", "🎉", "🎊", "🎈", "🥂", "☀️", "🌈", "🍀", "🌸", "🎵", "🎶", "⚽", "🏀", "☕", "🍕", "🍰", "🐶", "🐱", "🦋", "🌍"] },
+];
 const MAX_CHAT_MEDIA_BYTES = 50 * 1024 * 1024;
 const CHAT_MEDIA_ACCEPT = ".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm,.pdf,.doc,.docx";
 const URL_PATTERN = /(https?:\/\/[^\s<>]+)/gi;
@@ -135,6 +140,7 @@ function formatTime(iso) {
 export default function ChatConversation() {
   const { id: matchId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const { data: matchList, loading: matchesLoading, error: matchesError, reload: reloadMatches } =
     useAsyncData(() => getMatches(), []);
@@ -146,6 +152,7 @@ export default function ChatConversation() {
   const [sending, setSending] = useState(false);
   const [peerTyping, setPeerTyping] = useState(false);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
+  const [emojiCategory, setEmojiCategory] = useState(0);
   const [messageError, setMessageError] = useState("");
   const [mediaUploading, setMediaUploading] = useState(false);
   const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
@@ -160,6 +167,7 @@ export default function ChatConversation() {
   const typingTimerRef = useRef(null);
   const messagesEndRef = useRef(null);
   const uploadInputRef = useRef(null);
+  const draftInputRef = useRef(null);
 
   useEffect(() => {
     if (!mediaLibraryOpen) return undefined;
@@ -375,8 +383,15 @@ export default function ChatConversation() {
   };
 
   const addEmoji = (emoji) => {
-    handleDraftChange(`${draft}${emoji}`);
-    setEmojiPickerOpen(false);
+    const input = draftInputRef.current;
+    const start = input?.selectionStart ?? draft.length;
+    const end = input?.selectionEnd ?? draft.length;
+    const nextDraft = `${draft.slice(0, start)}${emoji}${draft.slice(end)}`;
+    handleDraftChange(nextDraft);
+    requestAnimationFrame(() => {
+      input?.focus();
+      input?.setSelectionRange(start + emoji.length, start + emoji.length);
+    });
   };
 
   // Indicateur « en train d'écrire » côté émetteur (debounce simple).
@@ -402,7 +417,16 @@ export default function ChatConversation() {
         {/* header */}
         <div className="flex items-center gap-3 p-4 border-b border-slate-100">
           <button
-            onClick={() => navigate("/app/messages")}
+            onClick={() => {
+              const returnTo = location.state?.from;
+              if (typeof returnTo === "string" && returnTo.startsWith("/") && !returnTo.startsWith("//")) {
+                navigate(returnTo);
+              } else if (location.key !== "default") {
+                navigate(-1);
+              } else {
+                navigate("/app/messages");
+              }
+            }}
             aria-label="Retour aux messages"
             className="w-8 h-8 rounded-full hover:bg-slate-50 flex items-center justify-center flex-shrink-0"
           >
@@ -556,24 +580,43 @@ export default function ChatConversation() {
                 id="chat-emoji-picker"
                 role="group"
                 aria-label="Sélecteur d’emojis"
-                className="absolute bottom-12 left-0 z-20 grid grid-cols-6 gap-1 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+                className="absolute bottom-12 left-12 z-20 w-72 max-w-[calc(100vw-3rem)] rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
               >
-                {EMOJIS.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    aria-label={`Ajouter l’emoji ${emoji}`}
-                    onClick={() => addEmoji(emoji)}
-                    className="w-9 h-9 rounded-lg text-xl hover:bg-slate-100"
-                  >
-                    {emoji}
-                  </button>
-                ))}
+                <div role="tablist" aria-label="Catégories d’emojis" className="flex gap-1 overflow-x-auto pb-2">
+                  {EMOJI_CATEGORIES.map((category, index) => (
+                    <button
+                      key={category.name}
+                      type="button"
+                      role="tab"
+                      aria-selected={emojiCategory === index}
+                      onClick={() => setEmojiCategory(index)}
+                      className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium ${
+                        emojiCategory === index ? "bg-violet-100 text-violet-700" : "text-slate-500 hover:bg-slate-100"
+                      }`}
+                    >
+                      {category.name}
+                    </button>
+                  ))}
+                </div>
+                <div role="tabpanel" className="grid max-h-52 grid-cols-7 gap-1 overflow-y-auto">
+                  {EMOJI_CATEGORIES[emojiCategory].emojis.map((emoji, index) => (
+                    <button
+                      key={`${emoji}-${index}`}
+                      type="button"
+                      aria-label={`Ajouter l’emoji ${emoji}`}
+                      onClick={() => addEmoji(emoji)}
+                      className="h-9 rounded-lg text-xl hover:bg-violet-50 focus:bg-violet-100 focus:outline-none"
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>
           <input
             type="text"
+            ref={draftInputRef}
             value={draft}
             maxLength={2000}
             onChange={(e) => handleDraftChange(e.target.value)}

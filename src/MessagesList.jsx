@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Search } from "lucide-react";
 import Layout from "./Layout";
 import { useAsyncData } from "./hooks/useAsyncData";
@@ -24,6 +24,8 @@ function formatDate(iso) {
 
 export default function MessagesList() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = `${location.pathname}${location.search}${location.hash}`;
   const { data: matches, loading, error, reload } = useAsyncData(() => getMatches(), []);
 
   return (
@@ -57,7 +59,7 @@ export default function MessagesList() {
               return (
                 <button
                   key={match.id}
-                  onClick={() => navigate(`/app/messages/${match.id}`)}
+                  onClick={() => navigate(`/app/messages/${match.id}`, { state: { from: returnTo } })}
                   className="w-full flex items-center gap-3 p-2.5 rounded-xl text-left transition-colors hover:bg-slate-50"
                 >
                   <div className="w-12 h-12 rounded-full bg-slate-100 flex-shrink-0 overflow-hidden flex items-center justify-center text-sm font-bold text-slate-400">

@@ -1,5 +1,5 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Heart, ChevronRight } from "lucide-react";
 import Layout from "./Layout";
 import { useAsyncData } from "./hooks/useAsyncData";
@@ -14,10 +14,10 @@ import { LoadingState, EmptyState, ErrorState } from "./components/ui/AsyncState
  * route dédiée, on évite donc une seconde requête identique.
  */
 
-function ProfileCard({ id, legacyId, name, age, university, faculty, interests = [], photo, onLike }) {
+function ProfileCard({ id, legacyId, name, age, university, faculty, interests = [], photo, onLike, returnTo }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-      <Link to={`/app/profil/${id}`} className="block">
+      <Link to={`/app/profil/${id}`} state={{ from: returnTo }} className="block">
         <div className="relative bg-slate-100">
           {photo ? (
             <img src={photo} alt={`${name || "Profil"}, ${age || "?"} ans`} className="w-full h-44 object-cover" />
@@ -59,6 +59,8 @@ function ProfileCard({ id, legacyId, name, age, university, faculty, interests =
 }
 
 export default function DiscoveryFeed() {
+  const location = useLocation();
+  const returnTo = `${location.pathname}${location.search}${location.hash}`;
   const { data: profiles, loading, error, reload } = useAsyncData(() => getDiscoveryProfiles(), []);
 
   const handleLike = (legacyId) => {
@@ -87,7 +89,7 @@ export default function DiscoveryFeed() {
         {!loading && !error && profiles && profiles.length > 0 && (
           <div className="grid md:grid-cols-3 gap-5 mb-8">
             {profiles.map((profile) => (
-              <ProfileCard key={profile.id} {...profile} onLike={handleLike} />
+              <ProfileCard key={profile.id} {...profile} onLike={handleLike} returnTo={returnTo} />
             ))}
           </div>
         )}
@@ -97,7 +99,12 @@ export default function DiscoveryFeed() {
             <p className="text-sm font-semibold text-slate-700 mb-3">Nouveaux membres</p>
             <div className="flex items-center gap-4 overflow-x-auto pb-2">
               {newMembers.map((member) => (
-                <Link key={member.id} to={`/app/profil/${member.id}`} aria-label={member.name || "Voir le profil"}>
+                <Link
+                  key={member.id}
+                  to={`/app/profil/${member.id}`}
+                  state={{ from: returnTo }}
+                  aria-label={member.name || "Voir le profil"}
+                >
                   {member.photo ? (
                     <img
                       src={member.photo}

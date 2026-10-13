@@ -48,6 +48,18 @@ class CallSignalingControllerTest {
     }
 
     @Test
+    void relaieInvitationMemeSiLaCreationDeNotificationEchoue() {
+        when(matchService.getMatchOuException(12L)).thenReturn(match);
+        doThrow(new IllegalStateException("notification unavailable"))
+                .when(notificationService).creerEtEnvoyer(2L, NotificationType.APPEL, "Appel audio entrant", 12L);
+
+        controller.signal(request(CallSignalType.INVITE, CallMediaType.AUDIO, null), principal(1L));
+
+        verify(messagingTemplate).convertAndSendToUser(eq("2"), eq("/queue/calls"), argThat((CallSignalResponse event) ->
+                event.getCallId().equals(CALL_ID) && event.getType() == CallSignalType.INVITE));
+    }
+
+    @Test
     void refuseUnUtilisateurQuiNestPasParticipantAvantDeDiffuserLeSignal() {
         when(matchService.getMatchOuException(12L)).thenReturn(match);
         doThrow(new ForbiddenException("not a participant"))
