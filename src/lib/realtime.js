@@ -95,6 +95,35 @@ class RealtimeClient {
     this.client.activate();
   }
 
+  waitForConnection(timeoutMs = 10_000) {
+    if (!this.enabled) {
+      return Promise.reject(new Error("Connectez-vous pour utiliser les appels."));
+    }
+    this.connect();
+    if (this.connected) return Promise.resolve();
+
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let timeout;
+      let unsubscribe = () => {};
+      const finish = (error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        unsubscribe();
+        if (error) reject(error);
+        else resolve();
+      };
+
+      unsubscribe = this.onConnect(() => finish());
+      timeout = setTimeout(
+        () => finish(new Error("Le serveur temps réel ne répond pas. Vérifiez votre connexion puis réessayez.")),
+        timeoutMs,
+      );
+      if (this.connected) finish();
+    });
+  }
+
   deactivate() {
     if (!this.client) return;
     this.client.deactivate();

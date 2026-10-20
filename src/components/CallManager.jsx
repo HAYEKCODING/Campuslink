@@ -171,6 +171,10 @@ export default function CallManager() {
     };
     updateCall(next);
     try {
+      await getRealtimeClient().waitForConnection();
+      if (callRef.current.callId !== next.callId || callRef.current.status !== "preparing") {
+        return;
+      }
       await setupLocalMedia(mediaType, matchId);
       if (callRef.current.callId !== next.callId || callRef.current.status !== "preparing") {
         cleanupMedia();

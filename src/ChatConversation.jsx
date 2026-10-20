@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Phone, Video, MoreVertical, Smile, Send, Paperclip, FolderOpen,
   FileText, Download, X, ChevronLeft, ChevronRight, ExternalLink, LoaderCircle,
+  Clock3, Hand, PawPrint, Apple, CircleDot, CarFront, Lightbulb, Heart, Flag, Search,
 } from "lucide-react";
 import { useAsyncData } from "./hooks/useAsyncData";
 import {
@@ -15,11 +16,39 @@ import { getRealtimeClient, sendTyping } from "./lib/realtime";
 import { LoadingState, ErrorState } from "./components/ui/AsyncStates";
 
 const EMOJI_CATEGORIES = [
-  { name: "Visages", emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "🥹", "😊", "😇", "🙂", "🙃", "😉", "😍", "🥰", "😘", "😋", "🤩", "😎", "😭", "😢", "😡", "🤔", "🤗", "🥳", "😴", "🤭"] },
-  { name: "Gestes", emojis: ["👋", "🤚", "✋", "🖐️", "👌", "🤌", "🤏", "✌️", "🤞", "🤟", "🤘", "🤙", "👈", "👉", "👆", "👇", "👍", "👎", "✊", "👏", "🙌", "👐", "🤝", "🙏"] },
-  { name: "Cœurs", emojis: ["❤️", "🩷", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "💟"] },
-  { name: "Divers", emojis: ["🔥", "✨", "⭐", "🌟", "💯", "🎉", "🎊", "🎈", "🥂", "☀️", "🌈", "🍀", "🌸", "🎵", "🎶", "⚽", "🏀", "☕", "🍕", "🍰", "🐶", "🐱", "🦋", "🌍"] },
+  { name: "Récents", icon: Clock3, emojis: ["😂", "🙂", "😊", "😏", "🙏", "😔", "🥰", "😭", "👌", "🤣", "😐", "🛍️", "😁", "🎉", "😢", "😘", "🦦", "❤️", "👀"] },
+  { name: "Visages", icon: Smile, emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "🥹", "😊", "😇", "🙂", "🙃", "😉", "😍", "🥰", "😘", "😋", "🤩", "😎", "😭", "😢", "😡", "🤔", "🤗", "🥳", "😴", "🤭", "😏", "😔", "😐", "🥱", "🤩", "😬", "🥲", "😮‍💨"] },
+  { name: "Gestes", icon: Hand, emojis: ["👋", "🤚", "✋", "🖐️", "👌", "🤌", "🤏", "✌️", "🤞", "🤟", "🤘", "🤙", "👈", "👉", "👆", "👇", "👍", "👎", "✊", "👏", "🙌", "👐", "🤝", "🙏"] },
+  { name: "Animaux", icon: PawPrint, emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐦", "🦄", "🦋", "🐢", "🐬", "🦦", "🐾"] },
+  { name: "Nourriture", icon: Apple, emojis: ["🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐", "🍒", "🍑", "🥭", "🍍", "🥑", "🍕", "🍔", "🍟", "🌮", "🍣", "🍰", "🍩", "☕", "🧋", "🍿"] },
+  { name: "Activités", icon: CircleDot, emojis: ["⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🏉", "🎱", "🏓", "🏸", "🥊", "🎮", "🎯", "🎨", "🎤", "🎧", "🎼", "🎸", "🎉", "🎊", "🎈", "🥇", "🏆", "🎳"] },
+  { name: "Voyages", icon: CarFront, emojis: ["🚗", "🚕", "🚌", "🚎", "🏎️", "🚓", "🚑", "🚒", "🚲", "🛵", "✈️", "🚀", "🚁", "🚢", "⛵", "🚂", "🏠", "🏖️", "🏝️", "🌍", "🌈", "🌅", "🌃", "🗽"] },
+  { name: "Objets", icon: Lightbulb, emojis: ["💡", "📱", "💻", "⌚", "📷", "🎥", "📚", "✏️", "📝", "📦", "🎁", "🔑", "🔒", "💰", "💎", "🛍️", "🧸", "🎈", "🕯️", "🪄", "📌", "🧭", "🪞", "🛒"] },
+  { name: "Cœurs", icon: Heart, emojis: ["❤️", "🩷", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "💟"] },
+  { name: "Symboles", icon: Flag, emojis: ["🔥", "✨", "⭐", "🌟", "💯", "☀️", "🌙", "☁️", "⚡", "❄️", "🌸", "🍀", "✅", "❌", "💬", "💭", "♻️", "❤️‍🔥", "🏳️", "🏁", "🚩", "🎌"] },
 ];
+const EMOJI_SEARCH_TERMS = {
+  "😂": "rire drôle pleurer joie",
+  "🤣": "rire drôle mort de rire",
+  "😊": "sourire heureux content",
+  "🥰": "amour amoureux coeur",
+  "😍": "amour amoureux coeur",
+  "😭": "pleurer triste larmes",
+  "😢": "pleurer triste larme",
+  "😔": "triste déçu",
+  "🙏": "merci prier mains",
+  "👍": "pouce ok oui bien",
+  "❤️": "coeur coeur rouge amour",
+  "💕": "coeur amour",
+  "🎉": "fête anniversaire celebration",
+  "🔥": "feu chaud flamme",
+  "☕": "café boisson",
+  "🍕": "pizza nourriture",
+  "🐶": "chien animal",
+  "🐱": "chat animal",
+  "🚗": "voiture auto transport",
+  "💡": "idée lumière ampoule",
+};
 const MAX_CHAT_MEDIA_BYTES = 50 * 1024 * 1024;
 const CHAT_MEDIA_ACCEPT = ".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm,.pdf,.doc,.docx";
 const URL_PATTERN = /(https?:\/\/[^\s<>]+)/gi;
@@ -153,6 +182,8 @@ export default function ChatConversation() {
   const [peerTyping, setPeerTyping] = useState(false);
   const [emojiPickerOpen, setEmojiPickerOpen] = useState(false);
   const [emojiCategory, setEmojiCategory] = useState(0);
+  const [emojiSearch, setEmojiSearch] = useState("");
+  const [recentEmojis, setRecentEmojis] = useState(EMOJI_CATEGORIES[0].emojis);
   const [messageError, setMessageError] = useState("");
   const [mediaUploading, setMediaUploading] = useState(false);
   const [mediaLibraryOpen, setMediaLibraryOpen] = useState(false);
@@ -388,11 +419,31 @@ export default function ChatConversation() {
     const end = input?.selectionEnd ?? draft.length;
     const nextDraft = `${draft.slice(0, start)}${emoji}${draft.slice(end)}`;
     handleDraftChange(nextDraft);
+    setRecentEmojis((recent) => [emoji, ...recent.filter((item) => item !== emoji)].slice(0, 28));
     requestAnimationFrame(() => {
       input?.focus();
       input?.setSelectionRange(start + emoji.length, start + emoji.length);
     });
   };
+
+  const searchQuery = emojiSearch.trim().toLocaleLowerCase("fr");
+  const searchableEmojis = EMOJI_CATEGORIES.slice(1).flatMap((category) =>
+    category.emojis.map((emoji) => ({ emoji, category: category.name }))
+  );
+  const filteredEmojis = searchQuery
+    ? searchableEmojis
+      .filter(({ emoji, category }) =>
+        `${emoji} ${category} ${EMOJI_SEARCH_TERMS[emoji] || ""}`
+          .toLocaleLowerCase("fr")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .includes(searchQuery.normalize("NFD").replace(/[\u0300-\u036f]/g, ""))
+      )
+      .map(({ emoji }) => emoji)
+      .filter((emoji, index, all) => all.indexOf(emoji) === index)
+    : emojiCategory === 0
+      ? recentEmojis
+      : EMOJI_CATEGORIES[emojiCategory].emojis;
 
   // Indicateur « en train d'écrire » côté émetteur (debounce simple).
   const handleDraftChange = (value) => {
@@ -580,34 +631,55 @@ export default function ChatConversation() {
                 id="chat-emoji-picker"
                 role="group"
                 aria-label="Sélecteur d’emojis"
-                className="absolute bottom-12 left-12 z-20 w-72 max-w-[calc(100vw-3rem)] rounded-xl border border-slate-200 bg-white p-2 shadow-xl"
+                className="absolute bottom-12 left-0 z-20 w-[min(23rem,calc(100vw-2rem))] overflow-hidden rounded-[1.75rem] border border-cyan-900 bg-[#062d3a] p-3 text-white shadow-2xl"
               >
-                <div role="tablist" aria-label="Catégories d’emojis" className="flex gap-1 overflow-x-auto pb-2">
-                  {EMOJI_CATEGORIES.map((category, index) => (
-                    <button
-                      key={category.name}
-                      type="button"
-                      role="tab"
-                      aria-selected={emojiCategory === index}
-                      onClick={() => setEmojiCategory(index)}
-                      className={`whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium ${
-                        emojiCategory === index ? "bg-violet-100 text-violet-700" : "text-slate-500 hover:bg-slate-100"
-                      }`}
-                    >
-                      {category.name}
-                    </button>
-                  ))}
-                </div>
-                <div role="tabpanel" className="grid max-h-52 grid-cols-7 gap-1 overflow-y-auto">
-                  {EMOJI_CATEGORIES[emojiCategory].emojis.map((emoji, index) => (
+                <label className="mb-3 flex h-12 items-center gap-3 rounded-full bg-[#174456] px-4 text-[#a8c4cf]">
+                  <Search className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  <input
+                    type="search"
+                    value={emojiSearch}
+                    onChange={(event) => setEmojiSearch(event.target.value)}
+                    placeholder="Rechercher un Emoji"
+                    aria-label="Rechercher un emoji"
+                    className="min-w-0 flex-1 bg-transparent text-base text-white outline-none placeholder:text-[#a8c4cf]"
+                  />
+                </label>
+                <div role="tabpanel" aria-label={emojiSearch ? "Résultats de recherche" : EMOJI_CATEGORIES[emojiCategory].name} className="grid max-h-56 grid-cols-7 gap-1 overflow-y-auto py-1">
+                  {filteredEmojis.map((emoji, index) => (
                     <button
                       key={`${emoji}-${index}`}
                       type="button"
                       aria-label={`Ajouter l’emoji ${emoji}`}
                       onClick={() => addEmoji(emoji)}
-                      className="h-9 rounded-lg text-xl hover:bg-violet-50 focus:bg-violet-100 focus:outline-none"
+                      className="flex h-12 items-center justify-center rounded-xl text-[2rem] leading-none hover:bg-white/10 focus:bg-white/15 focus:outline-none"
                     >
                       {emoji}
+                    </button>
+                  ))}
+                  {filteredEmojis.length === 0 && (
+                    <p className="col-span-7 py-6 text-center text-sm text-[#a8c4cf]">Aucun emoji trouvé.</p>
+                  )}
+                </div>
+                <div role="tablist" aria-label="Catégories d’emojis" className="mt-2 flex items-center justify-between gap-1 overflow-x-auto border-t border-white/10 pt-2">
+                  {EMOJI_CATEGORIES.map((category, index) => (
+                    <button
+                      key={category.name}
+                      type="button"
+                      role="tab"
+                      aria-label={category.name}
+                      title={category.name}
+                      aria-selected={emojiCategory === index}
+                      onClick={() => {
+                        setEmojiCategory(index);
+                        setEmojiSearch("");
+                      }}
+                      className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
+                        emojiCategory === index && !emojiSearch
+                          ? "bg-[#174456] text-white"
+                          : "text-[#c2d4dc] hover:bg-white/10"
+                      }`}
+                    >
+                      <category.icon className="h-5 w-5" aria-hidden="true" />
                     </button>
                   ))}
                 </div>
