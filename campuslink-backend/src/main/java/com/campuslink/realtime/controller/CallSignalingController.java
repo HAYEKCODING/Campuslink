@@ -96,11 +96,20 @@ public class CallSignalingController {
         ActiveCall call = new ActiveCall(request.getCallId(), senderId, recipientId,
                 request.getMediaType(), Instant.now());
         activeCalls.put(match.getId(), call);
-        notificationService.creerEtEnvoyer(recipientId, NotificationType.APPEL,
-                request.getMediaType() == CallSignalRequest.CallMediaType.VIDEO
-                        ? "Appel vidéo entrant" : "Appel audio entrant",
-                match.getId());
-        relay(request, senderId, recipientId);
+        try {
+            relay(request, senderId, recipientId);
+        } catch (RuntimeException ex) {
+            activeCalls.remove(match.getId(), call);
+            throw ex;
+        }
+        try {
+            notificationService.creerEtEnvoyer(recipientId, NotificationType.APPEL,
+                    request.getMediaType() == CallSignalRequest.CallMediaType.VIDEO
+                            ? "Appel vidéo entrant" : "Appel audio entrant",
+                    match.getId());
+        } catch (RuntimeException ex) {
+            log.warn("Impossible d'enregistrer la notification d'appel pour le match {}.", match.getId(), ex);
+        }
     }
 
     private void validateTransition(ActiveCall call, CallSignalRequest request, Long senderId) {

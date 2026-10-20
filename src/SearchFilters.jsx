@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Heart, SlidersHorizontal } from "lucide-react";
 import Layout from "./Layout";
 import { useAsyncData } from "./hooks/useAsyncData";
@@ -85,9 +85,13 @@ function AgeRange({ min, max, onChange }) {
   );
 }
 
-function ResultRow({ id, name, age, university, faculty, photo }) {
+function ResultRow({ id, name, age, university, faculty, photo, returnTo }) {
   return (
-    <Link to={`/app/profil/${id}`} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors">
+    <Link
+      to={`/app/profil/${id}`}
+      state={{ from: returnTo }}
+      className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 transition-colors"
+    >
       <div className="w-12 h-12 rounded-full bg-slate-100 flex-shrink-0 overflow-hidden flex items-center justify-center text-sm font-bold text-slate-400">
         {photo ? (
           <img src={photo} alt="" className="w-full h-full object-cover" />
@@ -111,6 +115,8 @@ function ResultRow({ id, name, age, university, faculty, photo }) {
 }
 
 export default function SearchFilters() {
+  const location = useLocation();
+  const returnTo = `${location.pathname}${location.search}${location.hash}`;
   const [university, setUniversity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [interest, setInterest] = useState("");
@@ -230,7 +236,7 @@ export default function SearchFilters() {
           {!searching && !searchError && results && results.length > 0 && (
             <div className="divide-y divide-slate-50">
               {results.map((result) => (
-                <ResultRow key={result.id} {...result} />
+                <ResultRow key={result.id} {...result} returnTo={returnTo} />
               ))}
             </div>
           )}

@@ -171,6 +171,10 @@ export default function CallManager() {
     };
     updateCall(next);
     try {
+      await getRealtimeClient().waitForConnection();
+      if (callRef.current.callId !== next.callId || callRef.current.status !== "preparing") {
+        return;
+      }
       await setupLocalMedia(mediaType, matchId);
       if (callRef.current.callId !== next.callId || callRef.current.status !== "preparing") {
         cleanupMedia();
@@ -332,18 +336,15 @@ export default function CallManager() {
   useEffect(() => {
     const rt = getRealtimeClient();
     rt.connect();
-    let subscription = { unsubscribe() {} };
-    const subscribe = () => {
-      subscription.unsubscribe();
-      subscription = rt.subscribeUser("/queue/calls", (frame) => {
-        try {
-          void handleSignal(JSON.parse(frame.body));
-        } catch (error) {
-          console.error("Signal d'appel temps réel invalide.", error);
-        }
-      });
-    };
-    const offConnect = rt.onConnect(subscribe);
+    const subscription = rt.subscribeUser("/queue/calls", (frame) => {
+      try {
+        void handleSignal(JSON.parse(frame.body)).catch((error) => {
+          console.error("Impossible de traiter le signal d'appel reçu.", error);
+        });
+      } catch (error) {
+        console.error("Signal d'appel temps réel invalide.", error);
+      }
+    });
     const offDisconnect = rt.onDisconnect(() => {
       const current = callRef.current;
       if (current.status === "idle" || current.status === "ended" || current.status === "error") return;
@@ -356,7 +357,6 @@ export default function CallManager() {
     window.addEventListener("campuslink:start-call", startListener);
     return () => {
       window.removeEventListener("campuslink:start-call", startListener);
-      offConnect();
       offDisconnect();
       subscription.unsubscribe();
       cleanupMedia();

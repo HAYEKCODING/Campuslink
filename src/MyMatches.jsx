@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import Layout from "./Layout";
 import { useAsyncData } from "./hooks/useAsyncData";
 import { getMatches } from "./services/matchesService";
@@ -34,12 +34,16 @@ function MatchCard({ name, photo, onClick }) {
 
 export default function MyMatches() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const returnTo = `${location.pathname}${location.search}${location.hash}`;
   const { data: matches, loading, error, reload } = useAsyncData(() => getMatches(), []);
 
   const openMatch = (match) => {
     // Priorité : ouvrir la discussion ; sinon retomber sur la fiche profil.
-    if (match.id != null) navigate(`/app/messages/${match.id}`);
-    else if (match.autreUtilisateurProfilId) navigate(`/app/profil/${match.autreUtilisateurProfilId}`);
+    if (match.id != null) navigate(`/app/messages/${match.id}`, { state: { from: returnTo } });
+    else if (match.autreUtilisateurProfilId) {
+      navigate(`/app/profil/${match.autreUtilisateurProfilId}`, { state: { from: returnTo } });
+    }
   };
 
   return (

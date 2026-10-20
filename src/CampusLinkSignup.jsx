@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { User, Mail, Phone, Lock, Eye, EyeOff, Heart } from "lucide-react";
-import { signup } from "./services/authService";
+import { User, Mail, Phone, Lock, Eye, EyeOff, Heart, RotateCw } from "lucide-react";
+import { resendEmailVerification, signup, verifyEmailAndLogin } from "./services/authService";
 
 /**
  * CampusLink — Créer un compte
@@ -13,7 +13,9 @@ import { signup } from "./services/authService";
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const MIN_PASSWORD_LENGTH = 8;
 
-function InputField({ icon: Icon, placeholder, type = "text", toggle, value, onChange, error }) {
+function InputField({
+  icon: Icon, placeholder, type = "text", toggle, inputMode, autoComplete, value, onChange, error,
+}) {
   const [show, setShow] = useState(false);
   const inputType = toggle ? (show ? "text" : "password") : type;
 
@@ -23,6 +25,8 @@ function InputField({ icon: Icon, placeholder, type = "text", toggle, value, onC
         <Icon className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
           type={inputType}
+          inputMode={inputMode}
+          autoComplete={autoComplete}
           placeholder={placeholder}
           value={value}
           onChange={(e) => onChange(e.target.value)}
@@ -59,6 +63,11 @@ export default function CampusLinkSignup() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [fieldErrors, setFieldErrors] = useState({});
+  const [verificationPending, setVerificationPending] = useState(false);
+  const [verificationCode, setVerificationCode] = useState("");
+  const [verificationSubmitting, setVerificationSubmitting] = useState(false);
+  const [resendingCode, setResendingCode] = useState(false);
+  const [verificationNotice, setVerificationNotice] = useState("");
 
   const validate = () => {
     const errors = {};
@@ -74,6 +83,8 @@ export default function CampusLinkSignup() {
     if (!password) errors.password = "Le mot de passe est obligatoire.";
     else if (password.length < MIN_PASSWORD_LENGTH)
       errors.password = `Le mot de passe doit contenir au moins ${MIN_PASSWORD_LENGTH} caractères.`;
+    else if (!/[A-Za-z]/.test(password) || !/\d/.test(password))
+      errors.password = "Le mot de passe doit contenir au moins une lettre et un chiffre.";
 
     if (!confirmPassword) errors.confirmPassword = "Merci de confirmer le mot de passe.";
     else if (password && confirmPassword !== password)
@@ -99,10 +110,41 @@ export default function CampusLinkSignup() {
     }
 
     setSubmitting(true);
-    signup({ fullName, firstName, email, phone, password, gender })
-      .then(() => navigate("/onboarding/1"))
-      .catch((err) => setError(err.message))
+    signup({ fullName, firstName, email, phone, password, confirmPassword, gender })
+      .then(() => {
+        setVerificationPending(true);
+        setVerificationNotice("Votre compte est créé. Un code a été demandé pour cette adresse; si vous ne le recevez pas, utilisez le bouton de renvoi après le délai anti-spam.");
+      })
+      .catch((err) => {
+        if (err.fieldErrors) setFieldErrors(err.fieldErrors);
+        if (err.status === 409) {
+          setVerificationPending(true);
+          setVerificationNotice("Un compte utilise déjà cette adresse. S’il n’a pas encore été confirmé, demandez un nouveau code; sinon, connectez-vous.");
+        } else {
+          setError(err.message || "Impossible de créer le compte. Vérifiez les informations et réessayez.");
+        }
+      })
       .finally(() => setSubmitting(false));
+  };
+
+  const handleVerifyEmail = (event) => {
+    event.preventDefault();
+    setError(null);
+    setVerificationSubmitting(true);
+    verifyEmailAndLogin({ email, code: verificationCode, password })
+      .then(() => navigate("/onboarding/1"))
+      .catch((err) => setError(err.message || "Vérification impossible. Vérifiez le code et réessayez."))
+      .finally(() => setVerificationSubmitting(false));
+  };
+
+  const handleResendCode = () => {
+    setError(null);
+    setVerificationNotice("");
+    setResendingCode(true);
+    resendEmailVerification(email.trim())
+      .then(() => setVerificationNotice("Si un compte correspondant existe, un nouveau code a été envoyé."))
+      .catch((err) => setError(err.message || "Impossible de renvoyer le code."))
+      .finally(() => setResendingCode(false));
   };
 
   return (
@@ -117,6 +159,52 @@ export default function CampusLinkSignup() {
           Rejoignez la communauté CampusLink
         </p>
 
+        {verificationPending ? (
+          <form className="space-y-4" onSubmit={handleVerifyEmail}>
+            <p className="text-sm text-slate-600" role="status">{verificationNotice}</p>
+            <p className="text-xs text-slate-500">
+              Adresse concernée : <strong>{email.trim()}</strong>. Vérifiez aussi le dossier courrier indésirable.
+            </p>
+            <InputField
+              icon={Mail}
+              placeholder="Code de vérification reçu par email"
+              type="text"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              value={verificationCode}
+              onChange={setVerificationCode}
+              error={fieldErrors.verificationCode}
+            />
+            {error && <p role="alert" className="text-sm text-rose-500">{error}</p>}
+            <button
+              type="submit"
+              disabled={verificationSubmitting || !verificationCode.trim()}
+              className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white text-sm font-semibold p-3 rounded-lg disabled:opacity-60"
+            >
+              {verificationSubmitting ? "Vérification..." : "Vérifier et continuer"}
+            </button>
+            <button
+              type="button"
+              onClick={handleResendCode}
+              disabled={resendingCode}
+              className="w-full inline-flex items-center justify-center gap-2 text-sm font-semibold text-violet-600 hover:underline disabled:opacity-60"
+            >
+              <RotateCw className={`h-4 w-4 ${resendingCode ? "animate-spin" : ""}`} />
+              {resendingCode ? "Envoi..." : "Renvoyer le code"}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setVerificationPending(false);
+                setError(null);
+                setVerificationNotice("");
+              }}
+              className="w-full text-sm text-slate-500 hover:text-slate-700"
+            >
+              Retour au formulaire
+            </button>
+          </form>
+        ) : (
         <form className="space-y-4" onSubmit={handleSubmit} noValidate>
           <InputField
             icon={User}
@@ -214,6 +302,7 @@ export default function CampusLinkSignup() {
             {submitting ? "Création..." : "Créer mon compte"}
           </button>
         </form>
+        )}
 
         <p className="text-sm text-slate-500 text-center mt-6">
           Déjà un compte ?{" "}

@@ -1,9 +1,8 @@
 # CampusLink — Backend
 
-Backend officiel de la plateforme **CampusLink**, construit avec Spring Boot 3.5 / Java 17.
-
-> ⚠️ Ce dépôt contient actuellement uniquement le **socle technique** du projet
-> (architecture, sécurité, configuration). Aucune logique métier n'a encore été implémentée.
+Backend de la plateforme **CampusLink**, construit avec Spring Boot 3.5 et Java 17.
+Il fournit notamment les fonctionnalités d'authentification, de gestion et de recherche
+de profils, de messagerie, d'appels audio et vidéo, de notifications et d'administration.
 
 ---
 
@@ -104,7 +103,7 @@ Autre possibilité : **phpMyAdmin** → onglet *Importer* → choisir
 n'existe pas, crée les 16 tables et **seed les 3 rôles**
 (`STUDENT`, `TEACHER`, `ADMIN`).
 
-> ⚠️ Ce seed est obligatoire : sans lui, l'inscription échoue avec
+> Attention : ce seed est obligatoire. Sans lui, l'inscription échoue avec
 > « Rôle STUDENT introuvable en base ».
 >
 > `schema.sql` est **idempotent** (réexécutable sans erreur) : il recrée les
@@ -553,7 +552,7 @@ l'envoi d'un OTP `EMAIL_VERIFICATION`. Cet appel est isolé dans sa propre trans
 | `OTP_MAX_ATTEMPTS`                     | 5      | Tentatives de vérification avant invalidation |
 | `OTP_CLEANUP_CRON`                       | `0 */15 * * * *` | Fréquence de purge automatique |
 
-> ⚠️ L'envoi d'email nécessite des identifiants SMTP valides dans `.env`
+> Attention : l'envoi d'email nécessite des identifiants SMTP valides dans `.env`
 > (`MAIL_USERNAME` / `MAIL_PASSWORD`). En développement, un service comme
 > [Mailtrap](https://mailtrap.io) permet de tester sans envoyer de vrais emails.
 
@@ -720,6 +719,7 @@ Voir le fichier [`.env.example`](./.env.example) pour la liste complète.
    | `WEBRTC_STUN_URLS` | `stun:stun.l.google.com:19302` (ou service STUN choisi) |
    | `WEBRTC_TURN_URLS` | URI du serveur TURN, si disponible |
    | `WEBRTC_TURN_SHARED_SECRET` | Secret partagé privé du serveur TURN compatible coturn REST |
+   | `JAVA_TOOL_OPTIONS` | Par défaut dans le Dockerfile : heap max à 60 % de la mémoire du conteneur, initial à 20 %, Serial GC. Augmenter la mémoire du service Render si le démarrage échoue encore avec `Java heap space`. |
 
 4. Aucun disque persistant Render n'est nécessaire pour les pièces jointes stockées sur Cloudinary.
 5. Sur une base Neon existante, exécuter `database/migration-chat-media.postgresql.sql`, puis `database/migration-profile-preferences.postgresql.sql` (si ce n'est pas déjà fait)

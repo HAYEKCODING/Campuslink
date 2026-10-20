@@ -1,5 +1,5 @@
 import React from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   GraduationCap,
@@ -31,7 +31,18 @@ const SELF_IDS = ["moi", "me"];
 export default function ProfileDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const isSelf = SELF_IDS.includes(id);
+  const returnTo = location.state?.from;
+  const goBack = () => {
+    if (typeof returnTo === "string" && returnTo.startsWith("/") && !returnTo.startsWith("//")) {
+      navigate(returnTo);
+    } else if (location.key !== "default") {
+      navigate(-1);
+    } else {
+      navigate("/app");
+    }
+  };
 
   const { data: profile, loading, error, reload } = useAsyncData(
     () => (isSelf ? getMyProfile() : getProfileById(id)),
@@ -81,7 +92,7 @@ export default function ProfileDetail() {
           )}
           <button
             type="button"
-            onClick={() => navigate(-1)}
+            onClick={goBack}
             aria-label="Retour"
             className="absolute top-4 left-4 w-9 h-9 rounded-full bg-white/90 backdrop-blur flex items-center justify-center hover:bg-white transition-colors"
           >
@@ -164,7 +175,9 @@ export default function ProfileDetail() {
                   Like
                 </button>
                 <button
-                  onClick={() => match && navigate(`/app/messages/${match.id}`)}
+                  onClick={() => match && navigate(`/app/messages/${match.id}`, {
+                    state: { from: `${location.pathname}${location.search}${location.hash}` },
+                  })}
                   disabled={!match}
                   title={match ? undefined : "Envoyez un like pour ouvrir la discussion"}
                   className="flex-1 flex items-center justify-center gap-2 border border-violet-600 text-violet-600 hover:bg-violet-50 transition-colors text-sm font-semibold py-3 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"

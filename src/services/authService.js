@@ -3,9 +3,8 @@ import { api, setAuthTokens, isAuthenticated } from "../lib/api";
 /**
  * Service d'authentification, aligné sur le backend réel :
  * - POST /auth/register (email, password, confirmPassword, firstName, lastName)
- *   ne renvoie pas de token (inscription != connexion) -> on connecte
- *   automatiquement juste après pour ne pas casser le flux existant
- *   (redirection vers l'onboarding).
+ *   crée un compte en attente de vérification et ne renvoie pas de token.
+ * - La connexion intervient après la vérification de l'email par OTP.
  * - POST /auth/login renvoie { accessToken, refreshToken, user }.
  *
  * `phone` et `gender` sont collectés par le formulaire mais n'ont pour
@@ -14,7 +13,7 @@ import { api, setAuthTokens, isAuthenticated } from "../lib/api";
  */
 
 export async function signup({ fullName, firstName, email, password, confirmPassword, gender }) {
-  await api.post("/auth/register", {
+  return api.post("/auth/register", {
     email,
     password,
     confirmPassword: confirmPassword ?? password,
@@ -22,7 +21,14 @@ export async function signup({ fullName, firstName, email, password, confirmPass
     lastName: fullName, // le champ "Nom complet" du formulaire sert de nom de famille
     gender,
   });
+}
 
+export function resendEmailVerification(email) {
+  return api.post("/otp/resend", { email, type: "EMAIL_VERIFICATION" });
+}
+
+export async function verifyEmailAndLogin({ email, code, password }) {
+  await api.post("/otp/verify", { email, code, type: "EMAIL_VERIFICATION" });
   return login({ email, password });
 }
 
