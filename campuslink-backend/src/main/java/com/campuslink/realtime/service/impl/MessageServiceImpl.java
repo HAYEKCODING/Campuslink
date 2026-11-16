@@ -20,6 +20,7 @@ import com.campuslink.realtime.service.NotificationService;
 import com.campuslink.realtime.service.ChatMediaFileValidator;
 import com.campuslink.realtime.service.ChatMediaFileValidator.ValidatedChatMedia;
 import com.campuslink.realtime.service.ChatMediaStorage;
+import com.campuslink.realtime.integration.UserDirectoryPort;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -50,6 +51,7 @@ public class MessageServiceImpl implements MessageService {
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatMediaStorage chatMediaStorage;
     private final ChatMediaProperties chatMediaProperties;
+    private final UserDirectoryPort userDirectoryPort;
 
     @Override
     @Transactional
@@ -72,11 +74,15 @@ public class MessageServiceImpl implements MessageService {
 
         // Le destinataire ne reçoit le message qu'une fois sa persistance validée.
         Long destinataireId = match.autreUtilisateur(expediteurId);
+        String nomExpediteur = userDirectoryPort.trouverApercu(expediteurId)
+                .map(UserDirectoryPort.ApercuUtilisateur::nom)
+                .filter(nom -> nom != null && !nom.isBlank())
+                .orElse("Un membre");
         afterCommit(() ->
                 messagingTemplate.convertAndSendToUser(destinataireId.toString(), "/queue/messages", response));
 
         notificationService.creerEtEnvoyer(
-                destinataireId, NotificationType.MESSAGE, "Nouveau message recu", matchId);
+                destinataireId, NotificationType.MESSAGE, nomExpediteur + " vous a envoyé un message.", matchId);
 
         return response;
     }
@@ -105,10 +111,14 @@ public class MessageServiceImpl implements MessageService {
         MessageResponse response = toResponse(message);
 
         Long destinataireId = match.autreUtilisateur(expediteurId);
+        String nomExpediteur = userDirectoryPort.trouverApercu(expediteurId)
+                .map(UserDirectoryPort.ApercuUtilisateur::nom)
+                .filter(nom -> nom != null && !nom.isBlank())
+                .orElse("Un membre");
         afterCommit(() ->
                 messagingTemplate.convertAndSendToUser(destinataireId.toString(), "/queue/messages", response));
         notificationService.creerEtEnvoyer(
-                destinataireId, NotificationType.MESSAGE, "Nouvelle pièce jointe reçue", matchId);
+                destinataireId, NotificationType.MESSAGE, nomExpediteur + " vous a envoyé une pièce jointe.", matchId);
         return response;
     }
 

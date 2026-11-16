@@ -347,6 +347,7 @@ export default function Settings() {
       const fields = [
         ["Nom", profile.name],
         ["Date de naissance", profile.dateOfBirth],
+        ["Âge", profile.age == null ? null : `${profile.age} ans (visible uniquement par vous)`],
         ["Genre", GENDERS.find((item) => item.value === profile.gender)?.label || profile.gender],
         ["Niveau d'étude", LEVELS.find((item) => item.value === profile.level)?.label || profile.level],
         ["Université", profile.university],

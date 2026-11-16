@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -33,6 +33,8 @@ export default function ProfileDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const isSelf = SELF_IDS.includes(id);
+  const [likeNotice, setLikeNotice] = useState("");
+  const [likeError, setLikeError] = useState("");
   const returnTo = location.state?.from;
   const goBack = () => {
     if (typeof returnTo === "string" && returnTo.startsWith("/") && !returnTo.startsWith("//")) {
@@ -55,9 +57,11 @@ export default function ProfileDetail() {
     : null;
 
   const handleLike = () => {
-    likeProfile(profile?.legacyId).catch(() => {
-      // TODO(backend): afficher une notification d'erreur si le like échoue
-    });
+    setLikeNotice("");
+    setLikeError("");
+    likeProfile(profile?.legacyId)
+      .then(() => setLikeNotice(`Vous avez aimé le profil de ${profile?.name || "ce membre"}.`))
+      .catch((err) => setLikeError(err.message || "Impossible d'envoyer votre like."));
   };
 
   if (loading) {
@@ -76,7 +80,7 @@ export default function ProfileDetail() {
     );
   }
 
-  const { name, age, university, faculty, city, about, interests = [], photo } = profile;
+  const { name, university, faculty, city, about, interests = [], photo } = profile;
   const initial = (name || "?").charAt(0);
 
   return (
@@ -104,7 +108,6 @@ export default function ProfileDetail() {
           <div className="mb-2">
             <h1 className="text-xl font-extrabold text-slate-900">
               {name}
-              {age ? `, ${age}` : ""}
             </h1>
             {isSelf && <p className="text-xs text-slate-400 mt-0.5">Votre profil</p>}
           </div>
@@ -186,6 +189,8 @@ export default function ProfileDetail() {
                   Message
                 </button>
               </div>
+              {likeNotice && <p role="status" className="text-sm text-emerald-600 text-center mt-3">{likeNotice}</p>}
+              {likeError && <p role="alert" className="text-sm text-rose-500 text-center mt-3">{likeError}</p>}
               {!match && (
                 <p className="text-xs text-slate-400 text-center mt-2">
                   Vous pouvez discuter uniquement après un match mutuel.

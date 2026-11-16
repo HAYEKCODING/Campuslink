@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Heart, Check, Menu, X, ShieldCheck, Users, Search, MessageCircle, Send } from "lucide-react";
+import { Heart, Check, Menu, X, ShieldCheck, Users, Search, MessageCircle, Send, User, UserPlus, HeartHandshake } from "lucide-react";
 import { useAsyncData } from "./hooks/useAsyncData";
 import { getPlatformStats } from "./services/statsService";
 import { getTestimonials } from "./services/testimonialsService";
@@ -19,6 +19,7 @@ const NAV_LINKS = [
   { label: "Accueil", href: "#accueil" },
   { label: "À propos", href: "#a-propos" },
   { label: "Fonctionnalités", href: "#fonctionnalites" },
+  { label: "Comment ça marche", href: "#comment-ca-marche" },
   { label: "Témoignages", href: "#temoignages" },
   { label: "Contact", href: "#contact" },
 ];
@@ -49,6 +50,29 @@ const FEATURES = [
     icon: Users,
     title: "Communauté active",
     description: "Rejoignez des milliers d'étudiants déjà inscrits sur votre campus et dans votre quartier.",
+  },
+];
+
+const HOW_IT_WORKS = [
+  {
+    icon: UserPlus,
+    title: "1. Créez votre compte",
+    description: "Inscrivez-vous avec votre adresse e-mail et confirmez-la avec le code reçu.",
+  },
+  {
+    icon: User,
+    title: "2. Présentez-vous",
+    description: "Complétez votre profil avec votre campus, vos centres d'intérêt et une courte bio.",
+  },
+  {
+    icon: Heart,
+    title: "3. Découvrez et likez",
+    description: "Parcourez les profils et envoyez un like aux personnes que vous souhaitez rencontrer.",
+  },
+  {
+    icon: HeartHandshake,
+    title: "4. Matchez et échangez",
+    description: "Quand le like est réciproque, vous obtenez un match et pouvez discuter dans la messagerie.",
   },
 ];
 
@@ -383,6 +407,32 @@ export default function CampusLinkLanding() {
               </div>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section id="comment-ca-marche" className="scroll-mt-24 bg-slate-50">
+        <div className="max-w-6xl mx-auto px-6 md:px-10 py-20">
+          <div className="text-center max-w-2xl mx-auto mb-12">
+            <span className="text-fuchsia-500 text-xs font-bold tracking-wide uppercase">En quelques étapes</span>
+            <h2 className="text-3xl font-extrabold mt-2">Comment fonctionne CampusLink ?</h2>
+            <p className="text-slate-500 mt-3 leading-relaxed">
+              Créez un profil, trouvez des étudiants qui vous correspondent et commencez une conversation après un match mutuel.
+            </p>
+          </div>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {HOW_IT_WORKS.map(({ icon: Icon, title, description }) => (
+              <article key={title} className="rounded-2xl bg-white p-6 shadow-sm">
+                <div className="w-11 h-11 rounded-xl bg-violet-100 flex items-center justify-center mb-4">
+                  <Icon className="w-5 h-5 text-violet-600" />
+                </div>
+                <h3 className="font-bold text-slate-900 mb-2">{title}</h3>
+                <p className="text-sm text-slate-500 leading-relaxed">{description}</p>
+              </article>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500 text-center mt-6">
+            Votre date de naissance et votre âge restent privés et ne sont visibles que dans vos paramètres personnels.
+          </p>
         </div>
       </section>
 

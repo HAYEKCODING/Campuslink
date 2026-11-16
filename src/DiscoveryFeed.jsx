@@ -14,13 +14,13 @@ import { LoadingState, EmptyState, ErrorState } from "./components/ui/AsyncState
  * route dédiée, on évite donc une seconde requête identique.
  */
 
-function ProfileCard({ id, legacyId, name, age, university, faculty, interests = [], photo, onLike, returnTo }) {
+function ProfileCard({ id, legacyId, name, university, faculty, interests = [], photo, onLike, returnTo }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
       <Link to={`/app/profil/${id}`} state={{ from: returnTo }} className="block">
         <div className="relative bg-slate-100">
           {photo ? (
-            <img src={photo} alt={`${name || "Profil"}, ${age || "?"} ans`} className="w-full h-44 object-cover" />
+            <img src={photo} alt={`Profil de ${name || "ce membre"}`} className="w-full h-44 object-cover" />
           ) : (
             <div className="w-full h-44" />
           )}
@@ -28,7 +28,6 @@ function ProfileCard({ id, legacyId, name, age, university, faculty, interests =
         <div className="p-4 pb-0">
           <p className="font-bold text-slate-900">
             {name}
-            {age ? `, ${age}` : ""}
           </p>
           {university && <p className="text-xs text-slate-400 mt-0.5">{university}</p>}
           {faculty && <p className="text-xs text-emerald-500 font-medium mt-0.5">{faculty}</p>}
@@ -62,11 +61,15 @@ export default function DiscoveryFeed() {
   const location = useLocation();
   const returnTo = `${location.pathname}${location.search}${location.hash}`;
   const { data: profiles, loading, error, reload } = useAsyncData(() => getDiscoveryProfiles(), []);
+  const [likeNotice, setLikeNotice] = React.useState("");
+  const [likeError, setLikeError] = React.useState("");
 
-  const handleLike = (legacyId) => {
-    likeProfile(legacyId).catch(() => {
-      // TODO(backend): afficher une notification d'erreur si le like échoue
-    });
+  const handleLike = (profile) => {
+    setLikeNotice("");
+    setLikeError("");
+    likeProfile(profile.legacyId)
+      .then(() => setLikeNotice(`Vous avez aimé le profil de ${profile.name || "ce membre"}.`))
+      .catch((err) => setLikeError(err.message || "Impossible d'envoyer votre like."));
   };
 
   const newMembers = profiles ? profiles.slice(0, 8) : null;
@@ -78,6 +81,8 @@ export default function DiscoveryFeed() {
         <p className="text-sm text-slate-400 mb-6">
           Voici des profils qui pourraient vous plaire
         </p>
+        {likeNotice && <p role="status" className="text-sm text-emerald-600 mb-4">{likeNotice}</p>}
+        {likeError && <p role="alert" className="text-sm text-rose-500 mb-4">{likeError}</p>}
 
         {loading && <LoadingState label="Chargement des profils..." />}
         {!loading && error && (
@@ -89,7 +94,7 @@ export default function DiscoveryFeed() {
         {!loading && !error && profiles && profiles.length > 0 && (
           <div className="grid md:grid-cols-3 gap-5 mb-8">
             {profiles.map((profile) => (
-              <ProfileCard key={profile.id} {...profile} onLike={handleLike} returnTo={returnTo} />
+              <ProfileCard key={profile.id} {...profile} onLike={() => handleLike(profile)} returnTo={returnTo} />
             ))}
           </div>
         )}

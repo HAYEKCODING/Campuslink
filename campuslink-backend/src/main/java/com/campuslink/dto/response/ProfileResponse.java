@@ -13,13 +13,12 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Représentation d'un profil, utilisée à la fois pour "mon profil"
- * ({@code GET /profiles/me}) et pour un profil public
- * ({@code GET /profiles/{id}/public}) — même forme dans les deux cas,
- * conformément au périmètre de champs défini pour ce module.
+ * Représentation d'un profil utilisée pour "mon profil"
+ * ({@code GET /profiles/me}), les profils publics
+ * ({@code GET /profiles/{id}/public}) et les résultats de recherche.
  *
- * <p>{@code dateOfBirth} est renseignée uniquement par le point d'accès privé
- * {@code GET /profiles/me}; les vues publiques ne l'exposent pas.</p>
+ * <p>{@code age} et {@code dateOfBirth} sont renseignées uniquement par le point
+ * d'accès privé {@code GET /profiles/me}; les vues publiques ne les exposent pas.</p>
  */
 @Getter
 @Builder

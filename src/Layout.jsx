@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, Search, Bell, MessageCircle, Home, User, Settings as SettingsIcon } from "lucide-react";
+import { Heart, Search, Bell, MessageCircle, Home, User, Settings as SettingsIcon, X } from "lucide-react";
 import { useAsyncData } from "./hooks/useAsyncData";
 import { getCurrentUser } from "./services/profileService";
 import {
@@ -51,6 +51,7 @@ export default function Layout({ active = "Accueil", showSearch = true, children
   const { data: user } = useAsyncData(() => getCurrentUser(), []);
   const { data: initialUnreadNotifications } = useAsyncData(() => getUnreadNotificationCount(), []);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [notificationToast, setNotificationToast] = useState(null);
 
   useEffect(() => {
     setUnreadNotifications(initialUnreadNotifications || 0);
@@ -72,6 +73,21 @@ export default function Layout({ active = "Accueil", showSearch = true, children
     };
   }, []);
 
+  useEffect(() => {
+    let timeoutId;
+    const showNotification = (event) => {
+      if (!event.detail?.contenu) return;
+      setNotificationToast(event.detail);
+      window.clearTimeout(timeoutId);
+      timeoutId = window.setTimeout(() => setNotificationToast(null), 6000);
+    };
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, showNotification);
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, showNotification);
+    };
+  }, []);
+
   const handleTopbarSearch = (e) => {
     e.preventDefault();
     // La recherche s'effectue sur la page dédiée (filtres structurés).
@@ -80,6 +96,34 @@ export default function Layout({ active = "Accueil", showSearch = true, children
 
   return (
     <div className="min-h-screen bg-slate-50 font-sans flex">
+      {notificationToast && (
+        <div
+          role="status"
+          className="fixed top-4 right-4 z-50 flex max-w-sm items-start gap-3 rounded-xl bg-white p-4 shadow-lg ring-1 ring-slate-200"
+        >
+          <button
+            type="button"
+            onClick={() => {
+              if (notificationToast.navigationUrl?.startsWith("/app/")) {
+                navigate(notificationToast.navigationUrl);
+              }
+              setNotificationToast(null);
+            }}
+            className="flex-1 text-left"
+          >
+            <span className="block text-sm font-bold text-slate-900">Nouvelle notification</span>
+            <span className="mt-1 block text-sm text-slate-600">{notificationToast.contenu}</span>
+          </button>
+          <button
+            type="button"
+            aria-label="Fermer la notification"
+            onClick={() => setNotificationToast(null)}
+            className="text-slate-400 hover:text-slate-700"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
       {/* ---------- SIDEBAR ---------- */}
       <aside className="hidden md:flex flex-col w-56 bg-white border-r border-slate-100 px-4 py-6">
         <div className="flex items-center gap-2 px-2 mb-8">

@@ -9,9 +9,9 @@ import {
 /**
  * Service profils — aligné sur le backend réel (module Profile).
  *
- * Forme brute renvoyée par l'API (ProfileResponse) :
- *   { id, legacyId, avatarUrl, firstName, lastName, age, gender, university,
- *     fieldOfStudy, neighborhood, city, bio, interests[] }
+ * Forme brute renvoyée par l'API (ProfileResponse) : l'âge et la date de
+ * naissance ne sont renseignés que pour le profil privé de l'utilisateur.
+ * Les réponses de recherche et les profils publics omettent ces champs.
  *
  * `normalizeProfile()` ajoute les champs "confort" utilisés par les écrans
  * (name, photo, faculty, about) pour éviter de dupliquer le mapping dans

@@ -5,6 +5,7 @@ import com.campuslink.realtime.entity.Like;
 import com.campuslink.realtime.entity.Match;
 import com.campuslink.realtime.entity.enums.MatchStatus;
 import com.campuslink.realtime.entity.enums.NotificationType;
+import com.campuslink.realtime.integration.UserDirectoryPort;
 import com.campuslink.exception.DuplicateResourceException;
 import com.campuslink.exception.ResourceNotFoundException;
 import com.campuslink.realtime.repository.LikeRepository;
@@ -37,6 +38,8 @@ class LikeServiceImplTest {
     private NotificationService notificationService;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private UserDirectoryPort userDirectoryPort;
 
     @InjectMocks
     private LikeServiceImpl likeService;
@@ -61,12 +64,15 @@ class LikeServiceImplTest {
     void liker_creeLikeSansMatch_quandPasDeLikeReciproque() {
         when(likeRepository.existsByEmetteurIdAndCibleId(EMETTEUR, CIBLE)).thenReturn(false);
         when(likeRepository.existsByEmetteurIdAndCibleId(CIBLE, EMETTEUR)).thenReturn(false);
+        when(userDirectoryPort.trouverApercu(EMETTEUR)).thenReturn(Optional.of(
+                new UserDirectoryPort.ApercuUtilisateur(EMETTEUR, null, "Awa Kone", null)));
 
         LikeResponse response = likeService.liker(EMETTEUR, CIBLE);
 
         assertThat(response.isMatchCree()).isFalse();
         verify(matchService, never()).creerSiAbsent(any(), any());
-        verify(notificationService).creerEtEnvoyer(eq(CIBLE), eq(NotificationType.LIKE), any(), eq(EMETTEUR));
+        verify(notificationService).creerEtEnvoyer(
+                CIBLE, NotificationType.LIKE, "Awa Kone a aimé votre profil.", EMETTEUR);
         verify(notificationService, never()).creerEtEnvoyer(any(), eq(NotificationType.MATCH), any(), any());
     }
 

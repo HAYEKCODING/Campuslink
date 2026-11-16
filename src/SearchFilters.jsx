@@ -85,7 +85,7 @@ function AgeRange({ min, max, onChange }) {
   );
 }
 
-function ResultRow({ id, name, age, university, faculty, photo, returnTo }) {
+function ResultRow({ id, name, university, faculty, photo, returnTo }) {
   return (
     <Link
       to={`/app/profil/${id}`}
@@ -100,10 +100,7 @@ function ResultRow({ id, name, age, university, faculty, photo, returnTo }) {
         )}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold text-slate-900">
-          {name}
-          {age ? `, ${age}` : ""}
-        </p>
+        <p className="text-sm font-bold text-slate-900">{name}</p>
         {university && <p className="text-xs text-slate-400 truncate">{university}</p>}
         {faculty && <p className="text-xs text-emerald-500 font-medium">{faculty}</p>}
       </div>

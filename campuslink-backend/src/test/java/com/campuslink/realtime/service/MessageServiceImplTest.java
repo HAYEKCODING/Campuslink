@@ -6,6 +6,7 @@ import com.campuslink.realtime.entity.enums.MatchStatus;
 import com.campuslink.exception.ForbiddenException;
 import com.campuslink.exception.DuplicateResourceException;
 import com.campuslink.realtime.repository.MessageRepository;
+import com.campuslink.realtime.integration.UserDirectoryPort;
 import com.campuslink.realtime.service.impl.MessageServiceImpl;
 import com.campuslink.config.ChatMediaProperties;
 import com.campuslink.realtime.service.ChatMediaStorage;
@@ -42,6 +43,8 @@ class MessageServiceImplTest {
     private ChatMediaStorage chatMediaStorage;
     @Mock
     private ChatMediaProperties chatMediaProperties;
+    @Mock
+    private UserDirectoryPort userDirectoryPort;
 
     @InjectMocks
     private MessageServiceImpl messageService;
@@ -127,6 +130,8 @@ class MessageServiceImplTest {
     void envoyer_persisteEtDiffuseAuDestinataire() {
         Match match = Match.builder().id(10L).utilisateur1Id(1L).utilisateur2Id(2L).statut(MatchStatus.ACTIF).build();
         when(matchService.getMatchOuException(10L)).thenReturn(match);
+        when(userDirectoryPort.trouverApercu(1L)).thenReturn(Optional.of(
+                new UserDirectoryPort.ApercuUtilisateur(1L, null, "Awa Kone", null)));
         when(messageRepository.save(any(Message.class))).thenAnswer(inv -> {
             Message m = inv.getArgument(0);
             m.setId(500L);
@@ -145,7 +150,9 @@ class MessageServiceImplTest {
         assertThat(persisted.getValue().getContenu()).isEqualTo("Salut 👋");
         verify(matchService).verifierParticipant(match, 1L);
         verify(messagingTemplate).convertAndSendToUser(eq("2"), eq("/queue/messages"), any());
-        verify(notificationService).creerEtEnvoyer(eq(2L), any(), anyString(), eq(10L));
+        verify(notificationService).creerEtEnvoyer(
+                2L, com.campuslink.realtime.entity.enums.NotificationType.MESSAGE,
+                "Awa Kone vous a envoyé un message.", 10L);
     }
 
     @Test

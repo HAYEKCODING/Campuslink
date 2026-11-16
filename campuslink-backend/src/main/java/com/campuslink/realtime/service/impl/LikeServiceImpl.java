@@ -12,6 +12,7 @@ import com.campuslink.repository.UserRepository;
 import com.campuslink.realtime.service.LikeService;
 import com.campuslink.realtime.service.MatchService;
 import com.campuslink.realtime.service.NotificationService;
+import com.campuslink.realtime.integration.UserDirectoryPort;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,7 @@ public class LikeServiceImpl implements LikeService {
     private final MatchService matchService;
     private final NotificationService notificationService;
     private final UserRepository userRepository;
+    private final UserDirectoryPort userDirectoryPort;
 
     @Override
     @Transactional
@@ -57,8 +59,12 @@ public class LikeServiceImpl implements LikeService {
         like = likeRepository.save(like);
 
         // Notifier la cible qu'elle a recu un like
+        String nomEmetteur = userDirectoryPort.trouverApercu(emetteurId)
+                .map(UserDirectoryPort.ApercuUtilisateur::nom)
+                .filter(nom -> nom != null && !nom.isBlank())
+                .orElse("Un membre");
         notificationService.creerEtEnvoyer(
-                cibleId, NotificationType.LIKE, "Quelqu'un a aime votre profil", emetteurId);
+                cibleId, NotificationType.LIKE, nomEmetteur + " a aimé votre profil.", emetteurId);
 
         boolean matchCree = false;
         if (likeRepository.existsByEmetteurIdAndCibleId(cibleId, emetteurId)) {

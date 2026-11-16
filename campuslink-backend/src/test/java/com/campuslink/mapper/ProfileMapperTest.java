@@ -63,7 +63,23 @@ class ProfileMapperTest {
                 .dateOfBirth(LocalDate.of(2000, 1, 1))
                 .build();
 
-        assertThat(mapper.toPublicProfileResponse(profile).getDateOfBirth()).isNull();
+        ProfileResponse publicResponse = mapper.toPublicProfileResponse(profile);
+        assertThat(publicResponse.getDateOfBirth()).isNull();
+        assertThat(publicResponse.getAge()).isNull();
+    }
+
+    @Test
+    void ownProfileMappingIncludesAgeAndBirthDateForPrivateSettings() {
+        Profile profile = Profile.builder()
+                .firstName("Awa")
+                .lastName("Kone")
+                .dateOfBirth(LocalDate.now().minusYears(23))
+                .build();
+
+        ProfileResponse privateResponse = mapper.toProfileResponse(profile);
+
+        assertThat(privateResponse.getAge()).isEqualTo(23);
+        assertThat(privateResponse.getDateOfBirth()).isEqualTo(profile.getDateOfBirth());
     }
 
 }
