@@ -23,9 +23,9 @@ function ProgressDots({ step, total = 3 }) {
     <div className="flex items-center gap-2">
       {Array.from({ length: total }).map((_, i) => (
         <React.Fragment key={i}>
-          <span className={`w-2.5 h-2.5 rounded-full ${i < step ? "bg-violet-600" : "bg-slate-200"}`} />
+          <span className={`w-2.5 h-2.5 rounded-full ${i < step ? "bg-brand-600" : "bg-slate-200"}`} />
           {i < total - 1 && (
-            <span className={`w-8 h-0.5 ${i < step - 1 ? "bg-violet-600" : "bg-slate-200"}`} />
+            <span className={`w-8 h-0.5 ${i < step - 1 ? "bg-brand-600" : "bg-slate-200"}`} />
           )}
         </React.Fragment>
       ))}
@@ -46,7 +46,7 @@ function ComboboxField({ label, placeholder, suggestions = [], value, onChange, 
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+        className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
       />
       <datalist id={listId}>
         {suggestions.map((opt) => (
@@ -173,7 +173,7 @@ export default function OnboardingStep1() {
         <div className="flex flex-col items-center mb-8">
           <label
             htmlFor="profile-photo"
-            className="w-24 h-24 rounded-full bg-violet-50 flex items-center justify-center mb-3 hover:bg-violet-100 transition-colors cursor-pointer overflow-hidden"
+            className="w-24 h-24 rounded-full bg-brand-50 flex items-center justify-center mb-3 hover:bg-brand-100 transition-colors cursor-pointer overflow-hidden"
           >
             {previewUrl || existingProfile?.photo ? (
               <img
@@ -182,7 +182,7 @@ export default function OnboardingStep1() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <Camera className="w-7 h-7 text-violet-500" strokeWidth={1.75} />
+              <Camera className="w-7 h-7 text-brand-500" strokeWidth={1.75} />
             )}
           </label>
           <input
@@ -192,7 +192,7 @@ export default function OnboardingStep1() {
             onChange={handlePhotoChange}
             className="hidden"
           />
-          <p className="text-sm font-semibold text-violet-600">Ajouter une photo</p>
+          <p className="text-sm font-semibold text-brand-600">Ajouter une photo</p>
           <p className="text-xs text-slate-400 mt-0.5">JPG, PNG, max. 5Mo</p>
           {photoError && <p className="text-xs text-rose-500 mt-1.5">{photoError}</p>}
           {profileError && (
@@ -213,7 +213,7 @@ export default function OnboardingStep1() {
                 type="date"
                 value={birthDate}
                 onChange={(e) => setBirthDate(e.target.value)}
-                className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+                className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
               />
               <Calendar className="w-4 h-4 text-slate-400 absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none" />
             </div>
@@ -245,7 +245,7 @@ export default function OnboardingStep1() {
               id="study-level"
               value={level}
               onChange={(e) => setLevel(e.target.value)}
-              className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+              className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
             >
               <option value="">Non précisé</option>
               {LEVELS.map((opt) => (
@@ -261,7 +261,7 @@ export default function OnboardingStep1() {
           <button
             type="submit"
             disabled={submitting || profileLoading || Boolean(profileError)}
-            className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg mt-2 disabled:opacity-60"
+            className="w-full bg-gradient-to-r from-brand-600 to-accent-500 hover:from-brand-700 hover:to-accent-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg mt-2 disabled:opacity-60"
           >
             {submitting ? "Enregistrement..." : "Suivant"}
           </button>

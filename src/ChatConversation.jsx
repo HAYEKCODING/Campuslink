@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Phone, Video, MoreVertical, Smile, Send, Paperclip, FolderOpen,
   FileText, Download, X, ChevronLeft, ChevronRight, ExternalLink, LoaderCircle,
-  Clock3, Hand, PawPrint, Apple, CircleDot, CarFront, Lightbulb, Heart, Flag, Search,
+  Clock3, Hand, PawPrint, Apple, CircleDot, CarFront, Lightbulb, Flag, Search,
 } from "lucide-react";
 import { useAsyncData } from "./hooks/useAsyncData";
 import {
@@ -16,30 +16,25 @@ import { getRealtimeClient, sendTyping } from "./lib/realtime";
 import { LoadingState, ErrorState } from "./components/ui/AsyncStates";
 
 const EMOJI_CATEGORIES = [
-  { name: "Récents", icon: Clock3, emojis: ["😂", "🙂", "😊", "😏", "🙏", "😔", "🥰", "😭", "👌", "🤣", "😐", "🛍️", "😁", "🎉", "😢", "😘", "🦦", "❤️", "👀"] },
-  { name: "Visages", icon: Smile, emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "🥹", "😊", "😇", "🙂", "🙃", "😉", "😍", "🥰", "😘", "😋", "🤩", "😎", "😭", "😢", "😡", "🤔", "🤗", "🥳", "😴", "🤭", "😏", "😔", "😐", "🥱", "🤩", "😬", "🥲", "😮‍💨"] },
+  { name: "Récents", icon: Clock3, emojis: ["😂", "🙂", "😊", "😏", "🙏", "😔", "😭", "👌", "🤣", "😐", "🛍️", "😁", "🎉", "😢", "🦦", "👀"] },
+  { name: "Visages", icon: Smile, emojis: ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "🥹", "😊", "😇", "🙂", "🙃", "😉", "😋", "🤩", "😎", "😭", "😢", "😡", "🤔", "🤗", "🥳", "😴", "🤭", "😏", "😔", "😐", "🥱", "😬", "🥲", "😮‍💨"] },
   { name: "Gestes", icon: Hand, emojis: ["👋", "🤚", "✋", "🖐️", "👌", "🤌", "🤏", "✌️", "🤞", "🤟", "🤘", "🤙", "👈", "👉", "👆", "👇", "👍", "👎", "✊", "👏", "🙌", "👐", "🤝", "🙏"] },
   { name: "Animaux", icon: PawPrint, emojis: ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯", "🦁", "🐮", "🐷", "🐸", "🐵", "🐔", "🐧", "🐦", "🦄", "🦋", "🐢", "🐬", "🦦", "🐾"] },
   { name: "Nourriture", icon: Apple, emojis: ["🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐", "🍒", "🍑", "🥭", "🍍", "🥑", "🍕", "🍔", "🍟", "🌮", "🍣", "🍰", "🍩", "☕", "🧋", "🍿"] },
   { name: "Activités", icon: CircleDot, emojis: ["⚽", "🏀", "🏈", "⚾", "🎾", "🏐", "🏉", "🎱", "🏓", "🏸", "🥊", "🎮", "🎯", "🎨", "🎤", "🎧", "🎼", "🎸", "🎉", "🎊", "🎈", "🥇", "🏆", "🎳"] },
   { name: "Voyages", icon: CarFront, emojis: ["🚗", "🚕", "🚌", "🚎", "🏎️", "🚓", "🚑", "🚒", "🚲", "🛵", "✈️", "🚀", "🚁", "🚢", "⛵", "🚂", "🏠", "🏖️", "🏝️", "🌍", "🌈", "🌅", "🌃", "🗽"] },
   { name: "Objets", icon: Lightbulb, emojis: ["💡", "📱", "💻", "⌚", "📷", "🎥", "📚", "✏️", "📝", "📦", "🎁", "🔑", "🔒", "💰", "💎", "🛍️", "🧸", "🎈", "🕯️", "🪄", "📌", "🧭", "🪞", "🛒"] },
-  { name: "Cœurs", icon: Heart, emojis: ["❤️", "🩷", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "🤎", "💔", "❣️", "💕", "💞", "💓", "💗", "💖", "💘", "💝", "💟"] },
-  { name: "Symboles", icon: Flag, emojis: ["🔥", "✨", "⭐", "🌟", "💯", "☀️", "🌙", "☁️", "⚡", "❄️", "🌸", "🍀", "✅", "❌", "💬", "💭", "♻️", "❤️‍🔥", "🏳️", "🏁", "🚩", "🎌"] },
+  { name: "Symboles", icon: Flag, emojis: ["🔥", "✨", "⭐", "🌟", "💯", "☀️", "🌙", "☁️", "⚡", "❄️", "🌸", "🍀", "✅", "❌", "💬", "💭", "♻️", "🏳️", "🏁", "🚩", "🎌"] },
 ];
 const EMOJI_SEARCH_TERMS = {
   "😂": "rire drôle pleurer joie",
   "🤣": "rire drôle mort de rire",
   "😊": "sourire heureux content",
-  "🥰": "amour amoureux coeur",
-  "😍": "amour amoureux coeur",
   "😭": "pleurer triste larmes",
   "😢": "pleurer triste larme",
   "😔": "triste déçu",
   "🙏": "merci prier mains",
   "👍": "pouce ok oui bien",
-  "❤️": "coeur coeur rouge amour",
-  "💕": "coeur amour",
   "🎉": "fête anniversaire celebration",
   "🔥": "feu chaud flamme",
   "☕": "café boisson",
@@ -557,7 +552,7 @@ export default function ChatConversation() {
               <div
                 className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
                   isMine(msg)
-                    ? "bg-violet-600 text-white rounded-br-sm"
+                    ? "bg-brand-600 text-white rounded-br-sm"
                     : "bg-slate-100 text-slate-700 rounded-bl-sm"
                 }`}
               >
@@ -612,7 +607,7 @@ export default function ChatConversation() {
             className="w-9 h-9 rounded-full hover:bg-slate-50 flex items-center justify-center disabled:opacity-50"
           >
             {mediaUploading
-              ? <LoaderCircle className="w-5 h-5 text-violet-600 animate-spin" />
+              ? <LoaderCircle className="w-5 h-5 text-brand-600 animate-spin" />
               : <Paperclip className="w-5 h-5 text-slate-400" />}
           </button>
           <div className="relative flex-shrink-0">
@@ -694,12 +689,12 @@ export default function ChatConversation() {
             onChange={(e) => handleDraftChange(e.target.value)}
             placeholder="Écrire un message..."
             aria-label="Écrire un message"
-            className="flex-1 px-4 py-2.5 text-sm rounded-full bg-slate-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-violet-400"
+            className="flex-1 px-4 py-2.5 text-sm rounded-full bg-slate-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
           <button
             type="submit"
             disabled={sending || !draft.trim()}
-            className="w-9 h-9 rounded-full bg-violet-600 hover:bg-violet-700 transition-colors flex items-center justify-center flex-shrink-0 disabled:opacity-50"
+            className="w-9 h-9 rounded-full bg-brand-600 hover:bg-brand-700 transition-colors flex items-center justify-center flex-shrink-0 disabled:opacity-50"
             aria-label="Envoyer le message"
           >
             <Send className="w-4 h-4 text-white" />
@@ -739,7 +734,7 @@ export default function ChatConversation() {
                   key={category}
                   type="button"
                   onClick={() => { setMediaCategory(category); setMediaPage(0); }}
-                  className={`border-b-2 px-3 py-3 text-sm ${mediaCategory === category ? "border-violet-600 font-semibold text-violet-700" : "border-transparent text-slate-500"}`}
+                  className={`border-b-2 px-3 py-3 text-sm ${mediaCategory === category ? "border-brand-600 font-semibold text-brand-700" : "border-transparent text-slate-500"}`}
                 >
                   {label}
                 </button>
@@ -756,7 +751,7 @@ export default function ChatConversation() {
                   {item.category === "LINKS" ? (
                     <div className="space-y-2">
                       {item.links?.map((link) => (
-                        <a key={link} href={link} target="_blank" rel="noopener noreferrer" className="block break-all text-sm text-violet-700 underline">
+                        <a key={link} href={link} target="_blank" rel="noopener noreferrer" className="block break-all text-sm text-brand-700 underline">
                           <ExternalLink className="mr-1 inline h-3.5 w-3.5" />{link}
                         </a>
                       ))}

@@ -9,8 +9,9 @@ import { LoadingState, EmptyState, ErrorState } from "./components/ui/AsyncState
 /**
  * CampusLink — Liste des conversations
  *
- * Le backend n'a pas d'entité "conversation" : une conversation est un match
- * actif (GET /matches), dont l'API renvoie l'identité de l'autre membre.
+ * Le backend n'a pas d'entité "conversation" : une conversation correspond à
+ * un abonnement réciproque (GET /matches), dont l'API renvoie l'identité de
+ * l'autre membre.
  * L'absence de last message / compteur non lu reflète l'API actuelle — pas de
  * données inventées.
  */
@@ -40,7 +41,7 @@ export default function MessagesList() {
             placeholder="Rechercher"
             aria-label="Rechercher une conversation"
             disabled
-            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg bg-slate-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-violet-400 disabled:opacity-60"
+            className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg bg-slate-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-brand-400 disabled:opacity-60"
           />
         </div>
 
@@ -49,7 +50,7 @@ export default function MessagesList() {
           <ErrorState label="Impossible de charger vos messages." onRetry={reload} />
         )}
         {!loading && !error && (!matches || matches.length === 0) && (
-          <EmptyState label="Aucune conversation pour l'instant. Likez un profil pour démarrer !" />
+          <EmptyState label="Aucune conversation pour l'instant. Abonnez-vous à un profil pour démarrer un échange." />
         )}
 
         {!loading && !error && matches && matches.length > 0 && (

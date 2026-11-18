@@ -408,8 +408,8 @@ export default function CallManager() {
             {!remoteStream && <div className="absolute inset-0 flex items-center justify-center text-sm text-white/70">{isIncoming ? "Appel vidéo entrant" : "Connexion vidéo…"}</div>}
           </div>
         ) : (
-          <div className="flex min-h-64 flex-col items-center justify-center gap-4 bg-gradient-to-b from-violet-950 to-slate-900 p-8">
-            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-violet-700 text-3xl font-semibold">
+          <div className="flex min-h-64 flex-col items-center justify-center gap-4 bg-gradient-to-b from-brand-950 to-slate-900 p-8">
+            <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-brand-700 text-3xl font-semibold">
               {call.contactPhoto ? <img src={call.contactPhoto} alt="" className="h-full w-full object-cover" /> : call.contactName?.charAt(0)}
             </div>
             <audio ref={remoteAudioRef} autoPlay />

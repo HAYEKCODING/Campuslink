@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Heart, SlidersHorizontal } from "lucide-react";
+import { SlidersHorizontal, UserPlus } from "lucide-react";
 import Layout from "./Layout";
 import { useAsyncData } from "./hooks/useAsyncData";
 import { searchProfiles } from "./services/searchService";
@@ -31,7 +31,7 @@ function SuggestInput({ label, placeholder, suggestions = [], value, onChange, l
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full px-4 py-2.5 text-sm rounded-lg border border-slate-200 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+        className="w-full px-4 py-2.5 text-sm rounded-lg border border-slate-200 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
       />
       <datalist id={listId}>
         {suggestions.map((opt) => (
@@ -56,7 +56,7 @@ function AgeRange({ min, max, onChange }) {
       <div className="relative h-6 flex items-center">
         <div className="absolute w-full h-1 bg-slate-100 rounded-full" />
         <div
-          className="absolute h-1 bg-violet-500 rounded-full"
+          className="absolute h-1 bg-brand-500 rounded-full"
           style={{
             left: `${((min - 18) / (60 - 18)) * 100}%`,
             right: `${100 - ((max - 18) / (60 - 18)) * 100}%`,
@@ -69,7 +69,7 @@ function AgeRange({ min, max, onChange }) {
           value={min}
           onChange={(e) => onChange(Math.min(Number(e.target.value), max - 1), max)}
           aria-label="Âge minimum"
-          className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-violet-600 [&::-webkit-slider-thumb]:cursor-pointer"
+          className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-600 [&::-webkit-slider-thumb]:cursor-pointer"
         />
         <input
           type="range"
@@ -78,7 +78,7 @@ function AgeRange({ min, max, onChange }) {
           value={max}
           onChange={(e) => onChange(min, Math.max(Number(e.target.value), min + 1))}
           aria-label="Âge maximum"
-          className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-violet-600 [&::-webkit-slider-thumb]:cursor-pointer"
+          className="absolute w-full appearance-none bg-transparent pointer-events-none [&::-webkit-slider-thumb]:pointer-events-auto [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-brand-600 [&::-webkit-slider-thumb]:cursor-pointer"
         />
       </div>
     </div>
@@ -105,7 +105,7 @@ function ResultRow({ id, name, university, faculty, photo, returnTo }) {
         {faculty && <p className="text-xs text-emerald-500 font-medium">{faculty}</p>}
       </div>
       <span className="w-8 h-8 rounded-full bg-slate-50 flex items-center justify-center flex-shrink-0">
-        <Heart className="w-4 h-4 text-fuchsia-500" strokeWidth={1.75} />
+        <UserPlus className="w-4 h-4 text-brand-600" strokeWidth={1.75} />
       </span>
     </Link>
   );
@@ -178,7 +178,7 @@ export default function SearchFilters() {
                 id="filtre-genre"
                 value={gender}
                 onChange={(e) => setGender(e.target.value)}
-                className="w-full px-4 py-2.5 text-sm rounded-lg border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+                className="w-full px-4 py-2.5 text-sm rounded-lg border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
               >
                 <option value="">Tous les genres</option>
                 {GENDERS.map((opt) => (
@@ -210,7 +210,7 @@ export default function SearchFilters() {
             <button
               onClick={handleSearch}
               disabled={searching}
-              className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
+              className="w-full bg-gradient-to-r from-brand-600 to-accent-500 hover:from-brand-700 hover:to-accent-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
             >
               {searching ? "Recherche..." : "Rechercher"}
             </button>

@@ -151,12 +151,14 @@ export async function updateProfile(partialData) {
 }
 
 /**
- * Like : POST /likes { cibleId } — `cibleId` est le `legacyId` du profil ciblé
- * (identifiant du module temps réel), jamais son UUID.
+ * Abonnement : le contrat backend expose encore POST /likes { cibleId } (le
+ * routeur du module temps réel) ; l'interface, elle, ne parle plus que
+ * d'abonnement. `cibleId` est le `legacyId` du profil ciblé (identifiant du
+ * module temps réel), jamais son UUID.
  */
-export function likeProfile(legacyId) {
+export function subscribeToProfile(legacyId) {
   if (legacyId === undefined || legacyId === null) {
-    return Promise.reject(new Error("Ce profil ne peut pas encore être liké."));
+    return Promise.reject(new Error("Ce profil ne peut pas encore recevoir d'abonnement."));
   }
   return api.post("/likes", { cibleId: legacyId });
 }

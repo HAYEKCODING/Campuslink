@@ -35,7 +35,7 @@ import CallManager from "./components/CallManager";
  * /app/profil/:id       -> Profil détaillé d'un membre
  * /app/messages         -> Liste des conversations
  * /app/messages/:id     -> Conversation avec un membre
- * /app/matchs           -> Mes matchs
+ * /app/contacts         -> Mes contacts (abonnements réciproques)
  * /app/parametres       -> Paramètres
  *
  * RequireAuth protège les routes /app/* : sans token, redirection vers
@@ -124,7 +124,9 @@ export default function App() {
         <Route path="/app/profil/:id" element={<RequireAuth><ProfileDetail /></RequireAuth>} />
         <Route path="/app/messages" element={<RequireAuth><MessagesList /></RequireAuth>} />
         <Route path="/app/messages/:id" element={<RequireAuth><ChatConversation /></RequireAuth>} />
-        <Route path="/app/matchs" element={<RequireAuth><MyMatches /></RequireAuth>} />
+        <Route path="/app/contacts" element={<RequireAuth><MyMatches /></RequireAuth>} />
+        {/* Ancienne URL conservée : les liens déjà partagés continuent de marcher. */}
+        <Route path="/app/matchs" element={<Navigate to="/app/contacts" replace />} />
         <Route path="/app/parametres" element={<RequireAuth><Settings /></RequireAuth>} />
 
         {/* Repli */}

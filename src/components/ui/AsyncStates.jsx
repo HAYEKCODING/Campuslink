@@ -27,7 +27,7 @@ export function ErrorState({ label = "Impossible de charger les données.", onRe
       {onRetry && (
         <button
           onClick={onRetry}
-          className="text-sm font-semibold text-violet-600 hover:underline"
+          className="text-sm font-semibold text-brand-600 hover:underline"
         >
           Réessayer
         </button>

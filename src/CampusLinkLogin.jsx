@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, Heart } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, GraduationCap } from "lucide-react";
 import { getOAuthProviders, login, requestPasswordReset, startOAuth } from "./services/authService";
 
 /**
@@ -20,7 +20,7 @@ function InputField({ icon: Icon, placeholder, type = "text", toggle, value, onC
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full pl-10 pr-10 py-3 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+        className="w-full pl-10 pr-10 py-3 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
       />
       {toggle && (
         <button
@@ -125,7 +125,7 @@ export default function CampusLinkLogin() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8">
         <div className="flex items-center gap-2 justify-center mb-6">
-          <Heart className="w-6 h-6 text-fuchsia-500 fill-fuchsia-500" strokeWidth={0} />
+          <GraduationCap className="w-6 h-6 text-brand-600" />
         </div>
 
         <h1 className="text-2xl font-extrabold text-center mb-1">Se connecter</h1>
@@ -141,7 +141,7 @@ export default function CampusLinkLogin() {
                 type="checkbox"
                 checked={remember}
                 onChange={() => setRemember((r) => !r)}
-                className="w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-400"
+                className="w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
               />
               Se souvenir de moi
             </label>
@@ -152,7 +152,7 @@ export default function CampusLinkLogin() {
                 setResetStatus(null);
                 setError(null);
               }}
-              className="text-violet-600 font-medium hover:underline"
+              className="text-brand-600 font-medium hover:underline"
             >
               Mot de passe oublié ?
             </button>
@@ -171,12 +171,12 @@ export default function CampusLinkLogin() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Votre email"
                   aria-label="Email pour réinitialiser le mot de passe"
-                  className="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                  className="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400"
                 />
                 <button
                   type="submit"
                   disabled={resetStatus === "sending"}
-                  className="px-3 py-2 text-xs font-semibold text-white bg-violet-600 hover:bg-violet-700 rounded-lg disabled:opacity-60"
+                  className="px-3 py-2 text-xs font-semibold text-white bg-brand-600 hover:bg-brand-700 rounded-lg disabled:opacity-60"
                 >
                   {resetStatus === "sending" ? "..." : "Envoyer"}
                 </button>
@@ -199,7 +199,7 @@ export default function CampusLinkLogin() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
+            className="w-full bg-gradient-to-r from-brand-600 to-accent-500 hover:from-brand-700 hover:to-accent-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
           >
             {submitting ? "Connexion..." : "Se connecter"}
           </button>
@@ -245,7 +245,7 @@ export default function CampusLinkLogin() {
 
         <p className="text-sm text-slate-500 text-center mt-6">
           Pas encore membre ?{" "}
-          <Link to="/inscription" className="text-violet-600 font-semibold hover:underline">
+          <Link to="/inscription" className="text-brand-600 font-semibold hover:underline">
             Créer un compte
           </Link>
         </p>

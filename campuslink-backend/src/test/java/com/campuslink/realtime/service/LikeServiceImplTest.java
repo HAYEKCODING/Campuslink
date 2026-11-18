@@ -72,7 +72,7 @@ class LikeServiceImplTest {
         assertThat(response.isMatchCree()).isFalse();
         verify(matchService, never()).creerSiAbsent(any(), any());
         verify(notificationService).creerEtEnvoyer(
-                CIBLE, NotificationType.LIKE, "Awa Kone a aimé votre profil.", EMETTEUR);
+                CIBLE, NotificationType.LIKE, "Awa Kone s'abonne à votre profil.", EMETTEUR);
         verify(notificationService, never()).creerEtEnvoyer(any(), eq(NotificationType.MATCH), any(), any());
     }
 

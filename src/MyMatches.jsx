@@ -6,9 +6,8 @@ import { getMatches } from "./services/matchesService";
 import { LoadingState, EmptyState, ErrorState } from "./components/ui/AsyncStates";
 
 /**
- * CampusLink — Mes matchs
- * GET /matches renvoie l'identité de l'autre membre (nom, photo, UUID du
- * profil) : on l'utilise pour afficher la carte et ouvrir la conversation.
+ * CampusLink — Mes contacts
+ * L'API liste les abonnements réciproques et l'identité de chaque contact.
  */
 
 function MatchCard({ name, photo, onClick }) {
@@ -16,7 +15,7 @@ function MatchCard({ name, photo, onClick }) {
   return (
     <button onClick={onClick} className="flex flex-col items-center gap-2 group" aria-label={label}>
       <div className="relative">
-        <div className="w-16 h-16 rounded-full bg-slate-100 overflow-hidden ring-2 ring-transparent group-hover:ring-violet-400 transition-all flex items-center justify-center text-lg font-bold text-slate-400">
+        <div className="w-16 h-16 rounded-full bg-slate-100 overflow-hidden ring-2 ring-transparent group-hover:ring-brand-400 transition-all flex items-center justify-center text-lg font-bold text-slate-400">
           {photo ? (
             <img src={photo} alt="" className="w-full h-full object-cover" />
           ) : (
@@ -47,16 +46,16 @@ export default function MyMatches() {
   };
 
   return (
-    <Layout active="Mes matchs">
+    <Layout active="Mes contacts">
       <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-sm p-6">
-        <h1 className="text-lg font-extrabold mb-6">Mes matchs</h1>
+        <h1 className="text-lg font-extrabold mb-6">Mes contacts</h1>
 
-        {loading && <LoadingState label="Chargement de vos matchs..." />}
+        {loading && <LoadingState label="Chargement de vos contacts..." />}
         {!loading && error && (
-          <ErrorState label="Impossible de charger vos matchs." onRetry={reload} />
+          <ErrorState label="Impossible de charger vos contacts." onRetry={reload} />
         )}
         {!loading && !error && (!matches || matches.length === 0) && (
-          <EmptyState label="Pas encore de match. Continuez à explorer !" />
+          <EmptyState label="Aucun contact pour le moment. Explorez les profils et abonnez-vous." />
         )}
         {!loading && !error && matches && matches.length > 0 && (
           <div className="grid grid-cols-3 sm:grid-cols-6 gap-6">

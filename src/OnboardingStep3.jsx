@@ -18,9 +18,9 @@ function ProgressDots({ step, total = 3 }) {
     <div className="flex items-center gap-2">
       {Array.from({ length: total }).map((_, i) => (
         <React.Fragment key={i}>
-          <span className={`w-2.5 h-2.5 rounded-full ${i < step ? "bg-violet-600" : "bg-slate-200"}`} />
+          <span className={`w-2.5 h-2.5 rounded-full ${i < step ? "bg-brand-600" : "bg-slate-200"}`} />
           {i < total - 1 && (
-            <span className={`w-8 h-0.5 ${i < step - 1 ? "bg-violet-600" : "bg-slate-200"}`} />
+            <span className={`w-8 h-0.5 ${i < step - 1 ? "bg-brand-600" : "bg-slate-200"}`} />
           )}
         </React.Fragment>
       ))}
@@ -109,12 +109,12 @@ export default function OnboardingStep3() {
 
         <div className="grid grid-cols-3 gap-3 mb-8">
           <label
-            className={`aspect-square rounded-xl border-2 border-dashed border-violet-200 bg-violet-50 flex flex-col items-center justify-center gap-1 hover:bg-violet-100 transition-colors ${
+            className={`aspect-square rounded-xl border-2 border-dashed border-brand-200 bg-brand-50 flex flex-col items-center justify-center gap-1 hover:bg-brand-100 transition-colors ${
               files.length >= MAX_PHOTOS ? "opacity-50 pointer-events-none" : "cursor-pointer"
             }`}
           >
-            <Plus className="w-5 h-5 text-violet-500" />
-            <span className="text-xs font-semibold text-violet-600">Ajouter</span>
+            <Plus className="w-5 h-5 text-brand-500" />
+            <span className="text-xs font-semibold text-brand-600">Ajouter</span>
             <input
               type="file"
               accept="image/png, image/jpeg"
@@ -168,7 +168,7 @@ export default function OnboardingStep3() {
             type="button"
             onClick={handleFinish}
             disabled={submitting}
-            className="flex-1 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
+            className="flex-1 bg-gradient-to-r from-brand-600 to-accent-500 hover:from-brand-700 hover:to-accent-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
           >
             {submitting ? "Envoi..." : "Terminer"}
           </button>

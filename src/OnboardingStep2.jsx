@@ -22,9 +22,9 @@ function ProgressDots({ step, total = 3 }) {
     <div className="flex items-center gap-2">
       {Array.from({ length: total }).map((_, i) => (
         <React.Fragment key={i}>
-          <span className={`w-2.5 h-2.5 rounded-full ${i < step ? "bg-violet-600" : "bg-slate-200"}`} />
+          <span className={`w-2.5 h-2.5 rounded-full ${i < step ? "bg-brand-600" : "bg-slate-200"}`} />
           {i < total - 1 && (
-            <span className={`w-8 h-0.5 ${i < step - 1 ? "bg-violet-600" : "bg-slate-200"}`} />
+            <span className={`w-8 h-0.5 ${i < step - 1 ? "bg-brand-600" : "bg-slate-200"}`} />
           )}
         </React.Fragment>
       ))}
@@ -139,7 +139,7 @@ export default function OnboardingStep2() {
               placeholder="Saisir ou choisir votre quartier"
               value={neighborhood}
               onChange={(e) => setNeighborhood(e.target.value)}
-              className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+              className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
             />
             <datalist id="onboarding-quartier">
               {(neighborhoods || []).map((n) => (
@@ -161,7 +161,7 @@ export default function OnboardingStep2() {
                     value={option.value}
                     checked={gender === option.value}
                     onChange={() => setGender(option.value)}
-                    className="w-4 h-4 text-violet-600 focus:ring-violet-400"
+                    className="w-4 h-4 text-brand-600 focus:ring-brand-400"
                   />
                   {option.label}
                 </label>
@@ -179,7 +179,7 @@ export default function OnboardingStep2() {
               onChange={(e) => setAbout(e.target.value.slice(0, 300))}
               placeholder="Parlez un peu de vous..."
               rows={3}
-              className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent resize-none"
+              className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent resize-none"
             />
             <p className="text-xs text-slate-400 text-right mt-1">{about.length}/300</p>
           </div>
@@ -198,8 +198,8 @@ export default function OnboardingStep2() {
                     onClick={() => toggleInterest(label)}
                     className={`text-sm px-4 py-2 rounded-full border transition-colors ${
                       active
-                        ? "bg-violet-600 text-white border-violet-600"
-                        : "bg-white text-slate-600 border-slate-200 hover:border-violet-300"
+                        ? "bg-brand-600 text-white border-brand-600"
+                        : "bg-white text-slate-600 border-slate-200 hover:border-brand-300"
                     }`}
                   >
                     {label}
@@ -221,13 +221,13 @@ export default function OnboardingStep2() {
                 }}
                 placeholder="Ajouter un centre d'intérêt"
                 aria-label="Ajouter un centre d'intérêt"
-                className="flex-1 px-4 py-2 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400"
+                className="flex-1 px-4 py-2 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400"
               />
               <button
                 type="button"
                 onClick={addCustomInterest}
                 aria-label="Ajouter"
-                className="w-9 h-9 rounded-lg bg-violet-600 hover:bg-violet-700 text-white flex items-center justify-center flex-shrink-0"
+                className="w-9 h-9 rounded-lg bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center flex-shrink-0"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -240,7 +240,7 @@ export default function OnboardingStep2() {
                     type="button"
                     key={interest}
                     onClick={() => toggleInterest(interest)}
-                    className="text-[11px] font-medium text-white bg-violet-600 px-2.5 py-1 rounded-full"
+                    className="text-[11px] font-medium text-white bg-brand-600 px-2.5 py-1 rounded-full"
                     title="Retirer"
                   >
                     {interest} ×
@@ -268,7 +268,7 @@ export default function OnboardingStep2() {
             <button
               type="submit"
               disabled={submitting || profileLoading || Boolean(profileError)}
-              className="flex-1 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
+              className="flex-1 bg-gradient-to-r from-brand-600 to-accent-500 hover:from-brand-700 hover:to-accent-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
             >
               {submitting ? "Enregistrement..." : "Suivant"}
             </button>

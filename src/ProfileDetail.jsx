@@ -4,12 +4,12 @@ import {
   ArrowLeft,
   GraduationCap,
   MapPin,
-  Heart,
+  UserPlus,
   MessageCircle,
   Pencil,
 } from "lucide-react";
 import { useAsyncData } from "./hooks/useAsyncData";
-import { getMyProfile, getProfileById, likeProfile } from "./services/profileService";
+import { getMyProfile, getProfileById, subscribeToProfile } from "./services/profileService";
 import { getMatches } from "./services/matchesService";
 import { LoadingState, ErrorState, EmptyState } from "./components/ui/AsyncStates";
 
@@ -21,9 +21,9 @@ import { LoadingState, ErrorState, EmptyState } from "./components/ui/AsyncState
  *    affiché en lecture seule avec un raccourci vers l'onboarding ;
  *  - /app/profil/:id  → fiche publique d'un membre (GET /profiles/{id}/public).
  *
- * La messagerie n'est ouverte qu'entre membres déjà matchés : le bouton
- * "Message" n'est donc actif que si un match existe avec ce profil
- * (GET /matches), sinon il invite à liker d'abord.
+ * La messagerie n'est ouverte qu'entre membres liés par un abonnement
+ * réciproque : le bouton "Message" n'est donc actif que si ce contact existe
+ * (GET /matches), sinon il invite à s'abonner d'abord.
  */
 
 const SELF_IDS = ["moi", "me"];
@@ -33,8 +33,8 @@ export default function ProfileDetail() {
   const navigate = useNavigate();
   const location = useLocation();
   const isSelf = SELF_IDS.includes(id);
-  const [likeNotice, setLikeNotice] = useState("");
-  const [likeError, setLikeError] = useState("");
+  const [subscribeNotice, setSubscribeNotice] = useState("");
+  const [subscribeError, setSubscribeError] = useState("");
   const returnTo = location.state?.from;
   const goBack = () => {
     if (typeof returnTo === "string" && returnTo.startsWith("/") && !returnTo.startsWith("//")) {
@@ -52,16 +52,16 @@ export default function ProfileDetail() {
   );
   const { data: matches } = useAsyncData(() => (isSelf ? Promise.resolve([]) : getMatches()), [isSelf]);
 
-  const match = !isSelf && matches && profile
+  const contact = !isSelf && matches && profile
     ? matches.find((m) => m.autreUtilisateurProfilId === profile.id)
     : null;
 
-  const handleLike = () => {
-    setLikeNotice("");
-    setLikeError("");
-    likeProfile(profile?.legacyId)
-      .then(() => setLikeNotice(`Vous avez aimé le profil de ${profile?.name || "ce membre"}.`))
-      .catch((err) => setLikeError(err.message || "Impossible d'envoyer votre like."));
+  const handleSubscribe = () => {
+    setSubscribeNotice("");
+    setSubscribeError("");
+    subscribeToProfile(profile?.legacyId)
+      .then(() => setSubscribeNotice(`Vous êtes maintenant abonné au profil de ${profile?.name || "ce membre"}.`))
+      .catch((err) => setSubscribeError(err.message || "Impossible d'enregistrer votre abonnement."));
   };
 
   if (loading) {
@@ -144,7 +144,7 @@ export default function ProfileDetail() {
                 {interests.map((interest) => (
                   <span
                     key={interest}
-                    className="text-[11px] font-medium text-violet-600 bg-violet-50 px-2.5 py-1 rounded-full"
+                    className="text-[11px] font-medium text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full"
                   >
                     {interest}
                   </span>
@@ -162,7 +162,7 @@ export default function ProfileDetail() {
           {isSelf ? (
             <button
               onClick={() => navigate("/onboarding/1")}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg"
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-600 to-accent-500 hover:from-brand-700 hover:to-accent-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg"
             >
               <Pencil className="w-4 h-4" />
               Compléter mon profil
@@ -171,29 +171,29 @@ export default function ProfileDetail() {
             <>
               <div className="flex gap-3">
                 <button
-                  onClick={handleLike}
-                  className="flex-1 flex items-center justify-center gap-2 bg-fuchsia-500 hover:bg-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg"
+                  onClick={handleSubscribe}
+                  className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 transition-colors text-white text-sm font-semibold py-3 rounded-lg"
                 >
-                  <Heart className="w-4 h-4 fill-white" strokeWidth={0} />
-                  Like
+                  <UserPlus className="w-4 h-4" />
+                  S'abonner
                 </button>
                 <button
-                  onClick={() => match && navigate(`/app/messages/${match.id}`, {
+                  onClick={() => contact && navigate(`/app/messages/${contact.id}`, {
                     state: { from: `${location.pathname}${location.search}${location.hash}` },
                   })}
-                  disabled={!match}
-                  title={match ? undefined : "Envoyez un like pour ouvrir la discussion"}
-                  className="flex-1 flex items-center justify-center gap-2 border border-violet-600 text-violet-600 hover:bg-violet-50 transition-colors text-sm font-semibold py-3 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
+                  disabled={!contact}
+                  title={contact ? undefined : "Abonnez-vous pour ouvrir la discussion"}
+                  className="flex-1 flex items-center justify-center gap-2 border border-brand-600 text-brand-600 hover:bg-brand-50 transition-colors text-sm font-semibold py-3 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <MessageCircle className="w-4 h-4" />
                   Message
                 </button>
               </div>
-              {likeNotice && <p role="status" className="text-sm text-emerald-600 text-center mt-3">{likeNotice}</p>}
-              {likeError && <p role="alert" className="text-sm text-rose-500 text-center mt-3">{likeError}</p>}
-              {!match && (
+              {subscribeNotice && <p role="status" className="text-sm text-emerald-600 text-center mt-3">{subscribeNotice}</p>}
+              {subscribeError && <p role="alert" className="text-sm text-rose-500 text-center mt-3">{subscribeError}</p>}
+              {!contact && (
                 <p className="text-xs text-slate-400 text-center mt-2">
-                  Vous pouvez discuter uniquement après un match mutuel.
+                  Vous pouvez discuter uniquement après un abonnement réciproque.
                 </p>
               )}
             </>

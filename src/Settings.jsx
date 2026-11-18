@@ -41,7 +41,7 @@ const SETTINGS_ITEMS = [
 ];
 
 const INPUT_CLASS =
-  "w-full px-4 py-3 text-sm rounded-lg border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent";
+  "w-full px-4 py-3 text-sm rounded-lg border border-slate-200 text-slate-700 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent";
 
 function SettingsRow({ label, icon: Icon, onClick }) {
   return (
@@ -50,8 +50,8 @@ function SettingsRow({ label, icon: Icon, onClick }) {
       onClick={onClick}
       className="w-full flex items-center gap-3 py-3.5 px-1 hover:bg-slate-50 rounded-lg transition-colors text-left"
     >
-      <span className="w-9 h-9 rounded-full bg-violet-50 flex items-center justify-center flex-shrink-0">
-        <Icon className="w-4 h-4 text-violet-500" />
+      <span className="w-9 h-9 rounded-full bg-brand-50 flex items-center justify-center flex-shrink-0">
+        <Icon className="w-4 h-4 text-brand-500" />
       </span>
       <span className="flex-1 text-sm font-medium text-slate-700">{label}</span>
       <ChevronRight className="w-4 h-4 text-slate-300" />
@@ -70,7 +70,7 @@ function ToggleRow({ label, description, checked, onChange }) {
         type="checkbox"
         checked={checked}
         onChange={(event) => onChange(event.target.checked)}
-        className="w-4 h-4 accent-violet-600"
+        className="w-4 h-4 accent-brand-600"
       />
     </label>
   );
@@ -333,7 +333,7 @@ export default function Settings() {
       type="button"
       onClick={onClick}
       disabled={saving || sectionLoading}
-      className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
+      className="w-full bg-gradient-to-r from-brand-600 to-accent-500 hover:from-brand-700 hover:to-accent-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
     >
       {saving ? "Enregistrement..." : label}
     </button>
@@ -366,7 +366,7 @@ export default function Settings() {
           <button
             type="button"
             onClick={() => openSection("profile")}
-            className="text-sm font-semibold text-violet-600 hover:underline"
+            className="text-sm font-semibold text-brand-600 hover:underline"
           >
             Modifier ces informations
           </button>
@@ -458,7 +458,7 @@ export default function Settings() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
+            className="w-full bg-gradient-to-r from-brand-600 to-accent-500 hover:from-brand-700 hover:to-accent-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
           >
             {saving ? "Enregistrement..." : "Enregistrer le profil"}
           </button>
@@ -513,8 +513,8 @@ export default function Settings() {
       if (sectionLoading) return <p className="text-sm text-slate-500">Chargement des notifications...</p>;
       if (!preferences) return <FormMessage error={error || "Notifications indisponibles."} />;
       const notificationTypes = [
-        ["notificationLikes", "J'aime"],
-        ["notificationMatches", "Matchs"],
+        ["notificationLikes", "Abonnements"],
+        ["notificationMatches", "Contacts"],
         ["notificationMessages", "Messages"],
         ["notificationReports", "Signalements"],
       ];
@@ -543,7 +543,7 @@ export default function Settings() {
                 type="button"
                 onClick={handleMarkAllRead}
                 disabled={saving || notifications.every((notification) => notification.lu)}
-                className="text-xs font-semibold text-violet-600 hover:underline disabled:text-slate-400"
+                className="text-xs font-semibold text-brand-600 hover:underline disabled:text-slate-400"
               >
                 Tout marquer comme lu
               </button>
@@ -554,13 +554,13 @@ export default function Settings() {
               <ul className="divide-y divide-slate-100">
                 {notifications.map((notification) => (
                   <li key={notification.id} className="flex items-start gap-3 py-3">
-                    <span className={`mt-1 w-2 h-2 rounded-full ${notification.lu ? "bg-slate-200" : "bg-violet-500"}`} />
+                    <span className={`mt-1 w-2 h-2 rounded-full ${notification.lu ? "bg-slate-200" : "bg-brand-500"}`} />
                     <div className="flex-1">
                       {notification.navigationUrl?.startsWith("/app/") ? (
                         <button
                           type="button"
                           onClick={() => handleOpenNotification(notification)}
-                          className="text-left text-sm text-slate-700 hover:text-violet-700"
+                          className="text-left text-sm text-slate-700 hover:text-brand-700"
                         >
                           {notification.contenu}
                         </button>
@@ -578,7 +578,7 @@ export default function Settings() {
                         type="button"
                         onClick={() => handleMarkRead(notification.id)}
                         aria-label="Marquer comme lu"
-                        className="text-violet-600 hover:text-violet-800"
+                        className="text-brand-600 hover:text-brand-800"
                       >
                         <Check className="w-4 h-4" />
                       </button>
@@ -630,7 +630,7 @@ export default function Settings() {
           <button
             type="submit"
             disabled={saving}
-            className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
+            className="w-full bg-gradient-to-r from-brand-600 to-accent-500 text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
           >
             {saving ? "Envoi..." : "Envoyer au support"}
           </button>
@@ -643,7 +643,7 @@ export default function Settings() {
         <div className="space-y-3 text-sm text-slate-600">
           <p>Les conditions d'utilisation détaillées ne sont pas encore publiées dans cette version de CampusLink.</p>
           <p>Pour toute question sur l'utilisation du service ou vos données, contactez l'équipe depuis « Aide et support ».</p>
-          <button type="button" onClick={() => openSection("support")} className="font-semibold text-violet-600 hover:underline">
+          <button type="button" onClick={() => openSection("support")} className="font-semibold text-brand-600 hover:underline">
             Contacter le support
           </button>
         </div>
@@ -654,7 +654,7 @@ export default function Settings() {
       return (
         <div className="space-y-3 text-sm text-slate-600">
           <p className="text-base font-bold text-slate-800">CampusLink</p>
-          <p>Une plateforme pour rencontrer des étudiants, découvrir des profils selon les affinités et échanger avec ses matchs.</p>
+          <p>Une plateforme éducative pour découvrir des étudiants, s'abonner à des profils selon leurs centres d'intérêt et échanger avec des contacts d'étude.</p>
           <p>Version web de CampusLink.</p>
         </div>
       );
@@ -671,7 +671,7 @@ export default function Settings() {
             <button
               type="button"
               onClick={goBack}
-              className="inline-flex items-center gap-1 text-sm font-semibold text-violet-600 mb-4 hover:underline"
+              className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 mb-4 hover:underline"
             >
               <ChevronLeft className="w-4 h-4" />
               Paramètres
@@ -690,12 +690,12 @@ export default function Settings() {
             <button
               type="button"
               onClick={handleLogout}
-              className="w-full flex items-center gap-3 py-3.5 px-1 mt-2 hover:bg-fuchsia-50 rounded-lg transition-colors text-left"
+              className="w-full flex items-center gap-3 py-3.5 px-1 mt-2 hover:bg-accent-50 rounded-lg transition-colors text-left"
             >
-              <span className="w-9 h-9 rounded-full bg-fuchsia-50 flex items-center justify-center flex-shrink-0">
-                <LogOut className="w-4 h-4 text-fuchsia-500" />
+              <span className="w-9 h-9 rounded-full bg-accent-50 flex items-center justify-center flex-shrink-0">
+                <LogOut className="w-4 h-4 text-accent-500" />
               </span>
-              <span className="flex-1 text-sm font-semibold text-fuchsia-500">Déconnexion</span>
+              <span className="flex-1 text-sm font-semibold text-accent-500">Déconnexion</span>
             </button>
           </>
         )}

@@ -20,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 
 /**
- * Logique metier du Like :
+ * Logique d'abonnement :
  *  1. Empeche un utilisateur de se liker lui-meme ou de liker deux fois le meme profil.
  *  2. Enregistre le Like.
  *  3. Verifie si la cible a deja like l'emetteur -> si oui, cree automatiquement un Match
@@ -41,7 +41,7 @@ public class LikeServiceImpl implements LikeService {
     @Transactional
     public LikeResponse liker(Long emetteurId, Long cibleId) {
         if (emetteurId.equals(cibleId)) {
-            throw new DuplicateResourceException("Impossible de se liker soi-meme");
+            throw new DuplicateResourceException("Impossible de s'abonner à son propre profil.");
         }
         // La cible doit exister : sinon l'insertion violerait la contrainte FK
         // fk_like_cible en base et le client recevrait un 500 au lieu d'un 404.
@@ -49,7 +49,7 @@ public class LikeServiceImpl implements LikeService {
             throw new ResourceNotFoundException("Profil", "cibleId", cibleId);
         }
         if (likeRepository.existsByEmetteurIdAndCibleId(emetteurId, cibleId)) {
-            throw new DuplicateResourceException("Vous avez deja like ce profil");
+            throw new DuplicateResourceException("Vous êtes déjà abonné à ce profil.");
         }
 
         Like like = Like.builder()
@@ -64,7 +64,7 @@ public class LikeServiceImpl implements LikeService {
                 .filter(nom -> nom != null && !nom.isBlank())
                 .orElse("Un membre");
         notificationService.creerEtEnvoyer(
-                cibleId, NotificationType.LIKE, nomEmetteur + " a aimé votre profil.", emetteurId);
+                cibleId, NotificationType.LIKE, nomEmetteur + " s'abonne à votre profil.", emetteurId);
 
         boolean matchCree = false;
         if (likeRepository.existsByEmetteurIdAndCibleId(cibleId, emetteurId)) {
@@ -75,9 +75,11 @@ public class LikeServiceImpl implements LikeService {
 
             if (matchCree) {
                 notificationService.creerEtEnvoyer(
-                        emetteurId, NotificationType.MATCH, "Vous avez un nouveau match !", match.getId());
+                        emetteurId, NotificationType.MATCH,
+                        "Vous êtes maintenant en contact : les échanges sont ouverts.", match.getId());
                 notificationService.creerEtEnvoyer(
-                        cibleId, NotificationType.MATCH, "Vous avez un nouveau match !", match.getId());
+                        cibleId, NotificationType.MATCH,
+                        "Vous êtes maintenant en contact : les échanges sont ouverts.", match.getId());
             }
         }
 

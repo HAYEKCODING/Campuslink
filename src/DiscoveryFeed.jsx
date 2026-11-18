@@ -1,9 +1,9 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Heart, ChevronRight } from "lucide-react";
+import { ChevronRight, UserPlus } from "lucide-react";
 import Layout from "./Layout";
 import { useAsyncData } from "./hooks/useAsyncData";
-import { getDiscoveryProfiles, likeProfile } from "./services/profileService";
+import { getDiscoveryProfiles, subscribeToProfile } from "./services/profileService";
 import { LoadingState, EmptyState, ErrorState } from "./components/ui/AsyncStates";
 
 /**
@@ -14,7 +14,7 @@ import { LoadingState, EmptyState, ErrorState } from "./components/ui/AsyncState
  * route dédiée, on évite donc une seconde requête identique.
  */
 
-function ProfileCard({ id, legacyId, name, university, faculty, interests = [], photo, onLike, returnTo }) {
+function ProfileCard({ id, name, university, faculty, interests = [], photo, onSubscribe, returnTo }) {
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
       <Link to={`/app/profil/${id}`} state={{ from: returnTo }} className="block">
@@ -38,7 +38,7 @@ function ProfileCard({ id, legacyId, name, university, faculty, interests = [], 
           {interests.slice(0, 3).map((tag) => (
             <span
               key={tag}
-              className="text-[11px] font-medium text-violet-600 bg-violet-50 px-2.5 py-1 rounded-full"
+              className="text-[11px] font-medium text-brand-600 bg-brand-50 px-2.5 py-1 rounded-full"
             >
               {tag}
             </span>
@@ -46,11 +46,12 @@ function ProfileCard({ id, legacyId, name, university, faculty, interests = [], 
         </div>
         <button
           type="button"
-          onClick={() => onLike?.(legacyId)}
-          aria-label={`Liker le profil de ${name || "ce membre"}`}
-          className="w-9 h-9 rounded-full bg-slate-50 shadow-sm flex items-center justify-center hover:scale-105 transition-transform flex-shrink-0"
+          onClick={onSubscribe}
+          aria-label={`S'abonner au profil de ${name || "ce membre"}`}
+          title="S'abonner"
+          className="w-9 h-9 rounded-full bg-brand-50 text-brand-600 shadow-sm flex items-center justify-center hover:bg-brand-100 transition-colors flex-shrink-0"
         >
-          <Heart className="w-4 h-4 text-fuchsia-500 fill-fuchsia-500" strokeWidth={0} />
+          <UserPlus className="w-4 h-4" />
         </button>
       </div>
     </div>
@@ -61,15 +62,15 @@ export default function DiscoveryFeed() {
   const location = useLocation();
   const returnTo = `${location.pathname}${location.search}${location.hash}`;
   const { data: profiles, loading, error, reload } = useAsyncData(() => getDiscoveryProfiles(), []);
-  const [likeNotice, setLikeNotice] = React.useState("");
-  const [likeError, setLikeError] = React.useState("");
+  const [subscribeNotice, setSubscribeNotice] = React.useState("");
+  const [subscribeError, setSubscribeError] = React.useState("");
 
-  const handleLike = (profile) => {
-    setLikeNotice("");
-    setLikeError("");
-    likeProfile(profile.legacyId)
-      .then(() => setLikeNotice(`Vous avez aimé le profil de ${profile.name || "ce membre"}.`))
-      .catch((err) => setLikeError(err.message || "Impossible d'envoyer votre like."));
+  const handleSubscribe = (profile) => {
+    setSubscribeNotice("");
+    setSubscribeError("");
+    subscribeToProfile(profile.legacyId)
+      .then(() => setSubscribeNotice(`Vous êtes maintenant abonné au profil de ${profile.name || "ce membre"}.`))
+      .catch((err) => setSubscribeError(err.message || "Impossible d'enregistrer votre abonnement."));
   };
 
   const newMembers = profiles ? profiles.slice(0, 8) : null;
@@ -79,10 +80,10 @@ export default function DiscoveryFeed() {
       <div className="max-w-5xl w-full mx-auto">
         <h1 className="text-2xl font-extrabold mb-1">Bonjour 👋</h1>
         <p className="text-sm text-slate-400 mb-6">
-          Voici des profils qui pourraient vous plaire
+          Voici des étudiants à découvrir pour vos projets et centres d'intérêt
         </p>
-        {likeNotice && <p role="status" className="text-sm text-emerald-600 mb-4">{likeNotice}</p>}
-        {likeError && <p role="alert" className="text-sm text-rose-500 mb-4">{likeError}</p>}
+        {subscribeNotice && <p role="status" className="text-sm text-emerald-600 mb-4">{subscribeNotice}</p>}
+        {subscribeError && <p role="alert" className="text-sm text-rose-500 mb-4">{subscribeError}</p>}
 
         {loading && <LoadingState label="Chargement des profils..." />}
         {!loading && error && (
@@ -94,7 +95,7 @@ export default function DiscoveryFeed() {
         {!loading && !error && profiles && profiles.length > 0 && (
           <div className="grid md:grid-cols-3 gap-5 mb-8">
             {profiles.map((profile) => (
-              <ProfileCard key={profile.id} {...profile} onLike={() => handleLike(profile)} returnTo={returnTo} />
+              <ProfileCard key={profile.id} {...profile} onSubscribe={() => handleSubscribe(profile)} returnTo={returnTo} />
             ))}
           </div>
         )}

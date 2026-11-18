@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { User, Mail, Phone, Lock, Eye, EyeOff, Heart, RotateCw } from "lucide-react";
+import { User, Mail, Phone, Lock, Eye, EyeOff, GraduationCap, RotateCw } from "lucide-react";
 import { resendEmailVerification, signup, verifyEmailAndLogin } from "./services/authService";
 
 /**
@@ -31,7 +31,7 @@ function InputField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           className={`w-full pl-10 pr-10 py-3 text-sm rounded-lg border placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:border-transparent ${
-            error ? "border-rose-400 focus:ring-rose-300" : "border-slate-200 focus:ring-violet-400"
+            error ? "border-rose-400 focus:ring-rose-300" : "border-slate-200 focus:ring-brand-400"
           }`}
         />
         {toggle && (
@@ -151,7 +151,7 @@ export default function CampusLinkSignup() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8">
         <div className="flex items-center gap-2 justify-center mb-6">
-          <Heart className="w-6 h-6 text-fuchsia-500 fill-fuchsia-500" strokeWidth={0} />
+          <GraduationCap className="w-6 h-6 text-brand-600" />
         </div>
 
         <h1 className="text-2xl font-extrabold text-center mb-1">Créer un compte</h1>
@@ -179,7 +179,7 @@ export default function CampusLinkSignup() {
             <button
               type="submit"
               disabled={verificationSubmitting || !verificationCode.trim()}
-              className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 text-white text-sm font-semibold p-3 rounded-lg disabled:opacity-60"
+              className="w-full bg-gradient-to-r from-brand-600 to-accent-500 text-white text-sm font-semibold p-3 rounded-lg disabled:opacity-60"
             >
               {verificationSubmitting ? "Vérification..." : "Vérifier et continuer"}
             </button>
@@ -187,7 +187,7 @@ export default function CampusLinkSignup() {
               type="button"
               onClick={handleResendCode}
               disabled={resendingCode}
-              className="w-full inline-flex items-center justify-center gap-2 text-sm font-semibold text-violet-600 hover:underline disabled:opacity-60"
+              className="w-full inline-flex items-center justify-center gap-2 text-sm font-semibold text-brand-600 hover:underline disabled:opacity-60"
             >
               <RotateCw className={`h-4 w-4 ${resendingCode ? "animate-spin" : ""}`} />
               {resendingCode ? "Envoi..." : "Renvoyer le code"}
@@ -263,8 +263,8 @@ export default function CampusLinkSignup() {
                   onClick={() => setGender(option.value)}
                   className={`text-sm font-medium py-2.5 rounded-lg border transition-colors ${
                     gender === option.value
-                      ? "bg-violet-600 text-white border-violet-600"
-                      : "bg-white text-slate-600 border-slate-200 hover:border-violet-300"
+                      ? "bg-brand-600 text-white border-brand-600"
+                      : "bg-white text-slate-600 border-slate-200 hover:border-brand-300"
                   }`}
                 >
                   {option.label}
@@ -278,15 +278,15 @@ export default function CampusLinkSignup() {
               type="checkbox"
               checked={accepted}
               onChange={() => setAccepted((a) => !a)}
-              className="mt-0.5 w-4 h-4 rounded border-slate-300 text-violet-600 focus:ring-violet-400"
+              className="mt-0.5 w-4 h-4 rounded border-slate-300 text-brand-600 focus:ring-brand-400"
             />
             <span>
               J'accepte les{" "}
-              <a href="#" className="text-violet-600 font-medium hover:underline">
+              <a href="#" className="text-brand-600 font-medium hover:underline">
                 Conditions d'utilisation
               </a>{" "}
               et la{" "}
-              <a href="#" className="text-violet-600 font-medium hover:underline">
+              <a href="#" className="text-brand-600 font-medium hover:underline">
                 Politique de confidentialité
               </a>
             </span>
@@ -297,7 +297,7 @@ export default function CampusLinkSignup() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
+            className="w-full bg-gradient-to-r from-brand-600 to-accent-500 hover:from-brand-700 hover:to-accent-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
           >
             {submitting ? "Création..." : "Créer mon compte"}
           </button>
@@ -306,7 +306,7 @@ export default function CampusLinkSignup() {
 
         <p className="text-sm text-slate-500 text-center mt-6">
           Déjà un compte ?{" "}
-          <Link to="/connexion" className="text-violet-600 font-semibold hover:underline">
+          <Link to="/connexion" className="text-brand-600 font-semibold hover:underline">
             Se connecter
           </Link>
         </p>

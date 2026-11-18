@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Heart, Check, Menu, X, ShieldCheck, Users, Search, MessageCircle, Send, User, UserPlus, HeartHandshake } from "lucide-react";
+import { GraduationCap, Check, Menu, X, ShieldCheck, Users, Search, MessageCircle, Send, User, UserPlus } from "lucide-react";
 import { useAsyncData } from "./hooks/useAsyncData";
 import { getPlatformStats } from "./services/statsService";
 import { getTestimonials } from "./services/testimonialsService";
@@ -25,8 +25,8 @@ const NAV_LINKS = [
 ];
 
 const CHECKLIST = [
-  "Rencontrez des étudiants près de chez vous",
-  "Trouvez l'amour, des amis ou des partenaires d'étude",
+  "Découvrez des étudiants près de chez vous",
+  "Trouvez des binômes de révision et des partenaires de projet",
   "Rejoignez une communauté sécurisée et bienveillante",
 ];
 
@@ -38,13 +38,13 @@ const FEATURES = [
   },
   {
     icon: Search,
-    title: "Recherche par affinités",
+    title: "Recherche par centres d'intérêt",
     description: "Filtrez par université, quartier ou centres d'intérêt pour trouver les bonnes personnes.",
   },
   {
     icon: MessageCircle,
     title: "Messagerie intégrée",
-    description: "Discutez en toute simplicité avec vos matchs, directement dans l'application.",
+    description: "Discutez en toute simplicité avec vos contacts, directement dans l'application.",
   },
   {
     icon: Users,
@@ -65,14 +65,14 @@ const HOW_IT_WORKS = [
     description: "Complétez votre profil avec votre campus, vos centres d'intérêt et une courte bio.",
   },
   {
-    icon: Heart,
-    title: "3. Découvrez et likez",
-    description: "Parcourez les profils et envoyez un like aux personnes que vous souhaitez rencontrer.",
+    icon: GraduationCap,
+    title: "3. Découvrez et abonnez-vous",
+    description: "Parcourez les profils et abonnez-vous aux étudiants avec qui vous souhaitez collaborer.",
   },
   {
-    icon: HeartHandshake,
-    title: "4. Matchez et échangez",
-    description: "Quand le like est réciproque, vous obtenez un match et pouvez discuter dans la messagerie.",
+    icon: Users,
+    title: "4. Échangez avec vos contacts",
+    description: "Quand l'abonnement est réciproque, vous pouvez discuter dans la messagerie.",
   },
 ];
 
@@ -94,7 +94,7 @@ function TestimonialsSection() {
   return (
     <section id="temoignages" className="scroll-mt-24 max-w-6xl mx-auto px-6 md:px-10 py-20">
       <div className="text-center max-w-xl mx-auto mb-12">
-        <span className="text-fuchsia-500 text-xs font-bold tracking-wide uppercase">Témoignages</span>
+        <span className="text-accent-500 text-xs font-bold tracking-wide uppercase">Témoignages</span>
         <h2 className="text-3xl font-extrabold mt-2">Ce que dit la communauté</h2>
       </div>
 
@@ -150,7 +150,7 @@ function ContactSection() {
     <section id="contact" className="scroll-mt-24 bg-slate-50">
       <div className="max-w-3xl mx-auto px-6 md:px-10 py-20">
         <div className="text-center mb-10">
-          <span className="text-fuchsia-500 text-xs font-bold tracking-wide uppercase">Contact</span>
+          <span className="text-accent-500 text-xs font-bold tracking-wide uppercase">Contact</span>
           <h2 className="text-3xl font-extrabold mt-2">Une question ? Écrivez-nous</h2>
         </div>
 
@@ -161,7 +161,7 @@ function ContactSection() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400"
+            className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
           <input
             type="email"
@@ -169,7 +169,7 @@ function ContactSection() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400"
+            className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400"
           />
           <textarea
             placeholder="Votre message"
@@ -177,7 +177,7 @@ function ContactSection() {
             onChange={(e) => setMessage(e.target.value)}
             required
             rows={4}
-            className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400 resize-none"
+            className="w-full px-4 py-3 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 resize-none"
           />
 
           {status === "error" && (
@@ -190,7 +190,7 @@ function ContactSection() {
           <button
             type="submit"
             disabled={status === "sending"}
-            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
+            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-brand-600 to-accent-500 hover:from-brand-700 hover:to-accent-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
           >
             <Send className="w-4 h-4" />
             {status === "sending" ? "Envoi..." : "Envoyer le message"}
@@ -210,9 +210,9 @@ export default function CampusLinkLanding() {
       {/* ---------- HEADER ---------- */}
       <header className="sticky top-0 z-20 bg-white flex items-center justify-between px-6 md:px-10 py-5 border-b border-slate-100">
         <div className="flex items-center gap-2">
-          <Heart className="w-6 h-6 text-fuchsia-500 fill-fuchsia-500" strokeWidth={0} />
+          <GraduationCap className="w-6 h-6 text-brand-600" />
           <span className="text-lg font-extrabold">
-            Campus<span className="text-fuchsia-500">Link</span>
+            Campus<span className="text-accent-500">Link</span>
           </span>
         </div>
 
@@ -225,13 +225,13 @@ export default function CampusLinkLanding() {
         <div className="hidden md:flex items-center gap-3">
           <Link
             to="/connexion"
-            className="text-sm font-semibold border border-violet-600 text-violet-600 px-5 py-2 rounded-full hover:bg-violet-50 transition-colors"
+            className="text-sm font-semibold border border-brand-600 text-brand-600 px-5 py-2 rounded-full hover:bg-brand-50 transition-colors"
           >
             Se connecter
           </Link>
           <Link
             to="/inscription"
-            className="text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-500 px-5 py-2 rounded-full hover:from-violet-700 hover:to-fuchsia-600 transition-colors"
+            className="text-sm font-semibold text-white bg-gradient-to-r from-brand-600 to-accent-500 px-5 py-2 rounded-full hover:from-brand-700 hover:to-accent-600 transition-colors"
           >
             S'inscrire
           </Link>
@@ -259,13 +259,13 @@ export default function CampusLinkLanding() {
           <div className="flex items-center gap-3 pt-2">
             <Link
               to="/connexion"
-              className="flex-1 text-center text-sm font-semibold border border-violet-600 text-violet-600 px-5 py-2 rounded-full"
+              className="flex-1 text-center text-sm font-semibold border border-brand-600 text-brand-600 px-5 py-2 rounded-full"
             >
               Se connecter
             </Link>
             <Link
               to="/inscription"
-              className="flex-1 text-center text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-500 px-5 py-2 rounded-full"
+              className="flex-1 text-center text-sm font-semibold text-white bg-gradient-to-r from-brand-600 to-accent-500 px-5 py-2 rounded-full"
             >
               S'inscrire
             </Link>
@@ -279,20 +279,20 @@ export default function CampusLinkLanding() {
           <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-4">
             Bienvenue sur
             <br />
-            <span className="bg-gradient-to-r from-slate-900 to-fuchsia-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-slate-900 to-accent-500 bg-clip-text text-transparent">
               CampusLink
             </span>
           </h1>
 
           <p className="text-slate-500 max-w-md mb-6 leading-relaxed">
-            Le site de rencontre des étudiants et de la communauté universitaire.
+            Le réseau éducatif qui relie les étudiants de votre campus et de votre quartier.
           </p>
 
           <ul className="space-y-3 mb-8">
             {CHECKLIST.map((item) => (
               <li key={item} className="flex items-start gap-3 text-sm text-slate-700">
-                <span className="mt-0.5 w-5 h-5 rounded-full bg-violet-100 flex items-center justify-center flex-shrink-0">
-                  <Check className="w-3 h-3 text-violet-600" strokeWidth={3} />
+                <span className="mt-0.5 w-5 h-5 rounded-full bg-brand-100 flex items-center justify-center flex-shrink-0">
+                  <Check className="w-3 h-3 text-brand-600" strokeWidth={3} />
                 </span>
                 {item}
               </li>
@@ -302,13 +302,13 @@ export default function CampusLinkLanding() {
           <div className="flex items-center gap-4 mb-8">
             <Link
               to="/inscription"
-              className="text-sm font-semibold text-white bg-gradient-to-r from-violet-600 to-fuchsia-500 px-6 py-3 rounded-full hover:from-violet-700 hover:to-fuchsia-600 transition-colors"
+              className="text-sm font-semibold text-white bg-gradient-to-r from-brand-600 to-accent-500 px-6 py-3 rounded-full hover:from-brand-700 hover:to-accent-600 transition-colors"
             >
               Commencer maintenant
             </Link>
             <a
               href="#a-propos"
-              className="text-sm font-semibold text-violet-600 border border-violet-600 px-6 py-3 rounded-full hover:bg-violet-50 transition-colors"
+              className="text-sm font-semibold text-brand-600 border border-brand-600 px-6 py-3 rounded-full hover:bg-brand-50 transition-colors"
             >
               En savoir plus
             </a>
@@ -343,8 +343,8 @@ export default function CampusLinkLanding() {
             centrés à l'intérieur de cette même boîte, ce qui évite que
             l'image se retrouve décalée ou coupée selon son format. */}
         <div className="relative w-full max-w-md h-[420px] mx-auto">
-          <div className="absolute inset-0 m-auto w-72 h-72 rounded-full bg-violet-100" />
-          <div className="absolute top-4 right-4 w-32 h-32 rounded-full bg-fuchsia-50" />
+          <div className="absolute inset-0 m-auto w-72 h-72 rounded-full bg-brand-100" />
+          <div className="absolute top-4 right-4 w-32 h-32 rounded-full bg-accent-50" />
 
           <img
             src="/hero-students.png"
@@ -353,7 +353,7 @@ export default function CampusLinkLanding() {
           />
 
           <div className="absolute top-6 right-8 w-11 h-11 rounded-full bg-white shadow-md flex items-center justify-center">
-            <Heart className="w-5 h-5 text-fuchsia-500 fill-fuchsia-500" strokeWidth={0} />
+            <GraduationCap className="w-5 h-5 text-brand-600" />
           </div>
         </div>
       </section>
@@ -362,26 +362,26 @@ export default function CampusLinkLanding() {
       <section id="a-propos" className="scroll-mt-24 bg-slate-50">
         <div className="max-w-5xl mx-auto px-6 md:px-10 py-20 grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <span className="text-fuchsia-500 text-xs font-bold tracking-wide uppercase">À propos</span>
+            <span className="text-accent-500 text-xs font-bold tracking-wide uppercase">À propos</span>
             <h2 className="text-3xl font-extrabold mt-2 mb-4">Pensé pour les étudiants, par des étudiants</h2>
             <p className="text-slate-500 leading-relaxed mb-4">
               CampusLink est né d'un constat simple : entre les cours, les stages et la vie
-              associative, il n'est pas toujours facile de rencontrer de nouvelles personnes
-              qui partagent vraiment son quotidien.
+              associative, il n'est pas toujours facile de trouver des étudiants qui
+              partagent vraiment son quotidien et ses objectifs d'étude.
             </p>
             <p className="text-slate-500 leading-relaxed">
-              Notre plateforme met en relation les étudiants d'un même campus ou d'une même
-              ville, pour construire des amitiés, des relations, ou simplement trouver un
-              binôme de révision.
+              Notre plateforme relie les étudiants d'un même campus ou d'une même ville
+              pour collaborer sur des projets et trouver un binôme de
+              révision.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white rounded-2xl p-6 text-center shadow-sm">
-              <p className="text-2xl font-extrabold text-fuchsia-500">100%</p>
+              <p className="text-2xl font-extrabold text-accent-500">100%</p>
               <p className="text-xs text-slate-400 mt-1">Profils universitaires</p>
             </div>
             <div className="bg-white rounded-2xl p-6 text-center shadow-sm">
-              <p className="text-2xl font-extrabold text-fuchsia-500">Bouaké</p>
+              <p className="text-2xl font-extrabold text-accent-500">Bouaké</p>
               <p className="text-xs text-slate-400 mt-1">Première ville couverte</p>
             </div>
           </div>
@@ -391,15 +391,15 @@ export default function CampusLinkLanding() {
       {/* ---------- FONCTIONNALITÉS ---------- */}
       <section id="fonctionnalites" className="scroll-mt-24 max-w-6xl mx-auto px-6 md:px-10 py-20">
         <div className="text-center max-w-xl mx-auto mb-12">
-          <span className="text-fuchsia-500 text-xs font-bold tracking-wide uppercase">Fonctionnalités</span>
-          <h2 className="text-3xl font-extrabold mt-2">Tout ce qu'il faut pour bien rencontrer</h2>
+          <span className="text-accent-500 text-xs font-bold tracking-wide uppercase">Fonctionnalités</span>
+          <h2 className="text-3xl font-extrabold mt-2">Tout pour étudier et collaborer sur le campus</h2>
         </div>
 
         <div className="grid sm:grid-cols-2 gap-6">
           {FEATURES.map(({ icon: Icon, title, description }) => (
             <div key={title} className="flex gap-4 p-6 rounded-2xl bg-slate-50">
-              <div className="w-11 h-11 rounded-xl bg-fuchsia-100 flex items-center justify-center flex-shrink-0">
-                <Icon className="w-5 h-5 text-fuchsia-500" />
+              <div className="w-11 h-11 rounded-xl bg-accent-100 flex items-center justify-center flex-shrink-0">
+                <Icon className="w-5 h-5 text-accent-500" />
               </div>
               <div>
                 <h3 className="font-bold text-slate-900 mb-1">{title}</h3>
@@ -413,17 +413,17 @@ export default function CampusLinkLanding() {
       <section id="comment-ca-marche" className="scroll-mt-24 bg-slate-50">
         <div className="max-w-6xl mx-auto px-6 md:px-10 py-20">
           <div className="text-center max-w-2xl mx-auto mb-12">
-            <span className="text-fuchsia-500 text-xs font-bold tracking-wide uppercase">En quelques étapes</span>
+            <span className="text-accent-500 text-xs font-bold tracking-wide uppercase">En quelques étapes</span>
             <h2 className="text-3xl font-extrabold mt-2">Comment fonctionne CampusLink ?</h2>
             <p className="text-slate-500 mt-3 leading-relaxed">
-              Créez un profil, trouvez des étudiants qui vous correspondent et commencez une conversation après un match mutuel.
+              Créez un profil, trouvez des étudiants qui partagent vos objectifs académiques et échangez après un abonnement réciproque.
             </p>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {HOW_IT_WORKS.map(({ icon: Icon, title, description }) => (
               <article key={title} className="rounded-2xl bg-white p-6 shadow-sm">
-                <div className="w-11 h-11 rounded-xl bg-violet-100 flex items-center justify-center mb-4">
-                  <Icon className="w-5 h-5 text-violet-600" />
+                <div className="w-11 h-11 rounded-xl bg-brand-100 flex items-center justify-center mb-4">
+                  <Icon className="w-5 h-5 text-brand-600" />
                 </div>
                 <h3 className="font-bold text-slate-900 mb-2">{title}</h3>
                 <p className="text-sm text-slate-500 leading-relaxed">{description}</p>

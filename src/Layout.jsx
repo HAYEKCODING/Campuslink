@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Heart, Search, Bell, MessageCircle, Home, User, Settings as SettingsIcon, X } from "lucide-react";
+import { GraduationCap, Search, Bell, MessageCircle, Home, User, Users, Settings as SettingsIcon, X } from "lucide-react";
 import { useAsyncData } from "./hooks/useAsyncData";
 import { getCurrentUser } from "./services/profileService";
 import {
@@ -12,7 +12,7 @@ import { getRealtimeClient } from "./lib/realtime";
 /**
  * CampusLink — Layout partagé (sidebar + topbar + nav mobile)
  * Utilisé par tous les écrans de l'app une fois connecté :
- * Découverte, Recherche, Messages, Mes matchs, Profil, Paramètres.
+ * Découverte, Recherche, Messages, Mes contacts, Profil, Paramètres.
  *
  * L'utilisateur courant et ses compteurs de badges (messages non lus,
  * notifications) sont chargés depuis l'API via getCurrentUser().
@@ -33,7 +33,7 @@ const DEFAULT_NAV = [
   { label: "Recherche", icon: Search, to: "/app/recherche" },
   { label: "Messages", icon: MessageCircle, to: "/app/messages", badgeKey: "unreadMessages" },
   { label: "Notifications", icon: Bell, to: "/app/parametres?section=notifications", badgeKey: "unreadNotifications" },
-  { label: "Mes matchs", icon: Heart, to: "/app/matchs" },
+  { label: "Mes contacts", icon: Users, to: "/app/contacts" },
   { label: "Profil", icon: User, to: "/app/profil/moi" },
   { label: "Paramètres", icon: SettingsIcon, to: "/app/parametres" },
 ];
@@ -41,7 +41,7 @@ const DEFAULT_NAV = [
 const MOBILE_NAV = [
   { label: "Accueil", icon: Home, to: "/app" },
   { label: "Recherche", icon: Search, to: "/app/recherche" },
-  { label: "Mes matchs", icon: Heart, to: "/app/matchs" },
+  { label: "Contacts", icon: Users, to: "/app/contacts" },
   { label: "Messages", icon: MessageCircle, to: "/app/messages" },
   { label: "Profil", icon: User, to: "/app/profil/moi" },
 ];
@@ -127,9 +127,9 @@ export default function Layout({ active = "Accueil", showSearch = true, children
       {/* ---------- SIDEBAR ---------- */}
       <aside className="hidden md:flex flex-col w-56 bg-white border-r border-slate-100 px-4 py-6">
         <div className="flex items-center gap-2 px-2 mb-8">
-          <Heart className="w-6 h-6 text-fuchsia-500 fill-fuchsia-500" strokeWidth={0} />
+          <GraduationCap className="w-6 h-6 text-brand-600" />
           <span className="font-extrabold">
-            Campus<span className="text-fuchsia-500">Link</span>
+            Campus<span className="text-accent-500">Link</span>
           </span>
         </div>
 
@@ -146,7 +146,7 @@ export default function Layout({ active = "Accueil", showSearch = true, children
                 key={label}
                 to={to}
                 className={`flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                  isActive ? "bg-violet-600 text-white" : "text-slate-500 hover:bg-slate-50"
+                  isActive ? "bg-brand-600 text-white" : "text-slate-500 hover:bg-slate-50"
                 }`}
               >
                 <span className="flex items-center gap-3">
@@ -156,7 +156,7 @@ export default function Layout({ active = "Accueil", showSearch = true, children
                 {badgeValue ? (
                   <span
                     className={`text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
-                      isActive ? "bg-white/20 text-white" : "bg-fuchsia-500 text-white"
+                      isActive ? "bg-white/20 text-white" : "bg-accent-500 text-white"
                     }`}
                   >
                     {badgeValue}
@@ -178,7 +178,7 @@ export default function Layout({ active = "Accueil", showSearch = true, children
                 type="search"
                 placeholder="Rechercher"
                 aria-label="Rechercher un membre"
-                className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg bg-slate-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-violet-400"
+                className="w-full pl-10 pr-4 py-2.5 text-sm rounded-lg bg-slate-50 border border-transparent focus:outline-none focus:ring-2 focus:ring-brand-400"
               />
             </form>
           ) : (
@@ -192,7 +192,7 @@ export default function Layout({ active = "Accueil", showSearch = true, children
           >
             <Bell className="w-5 h-5 text-slate-500" />
             {unreadNotifications > 0 ? (
-              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-fuchsia-500" />
+              <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-accent-500" />
             ) : null}
           </button>
           <Link to="/app/profil/moi">
@@ -223,7 +223,7 @@ export default function Layout({ active = "Accueil", showSearch = true, children
               to={to}
               aria-label={label}
               className={`flex flex-col items-center justify-center w-12 h-12 rounded-full ${
-                isActive ? "text-violet-600" : "text-slate-400"
+                isActive ? "text-brand-600" : "text-slate-400"
               }`}
             >
               <Icon className="w-5 h-5" strokeWidth={isActive ? 2.25 : 1.75} />

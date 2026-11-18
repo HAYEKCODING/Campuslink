@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
-import { Lock, Eye, EyeOff, Heart } from "lucide-react";
+import { GraduationCap, Lock, Eye, EyeOff } from "lucide-react";
 import { resetPassword } from "./services/authService";
 
 /**
@@ -22,7 +22,7 @@ function InputField({ icon: Icon, placeholder, value, onChange }) {
         placeholder={placeholder}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full pl-10 pr-10 py-3 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:border-transparent"
+        className="w-full pl-10 pr-10 py-3 text-sm rounded-lg border border-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:border-transparent"
       />
       <button
         type="button"
@@ -71,7 +71,7 @@ export default function ResetPasswordPage() {
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6 font-sans">
       <div className="w-full max-w-md bg-white rounded-2xl shadow-sm p-8">
         <div className="flex items-center justify-center mb-6">
-          <Heart className="w-6 h-6 text-fuchsia-500 fill-fuchsia-500" strokeWidth={0} />
+          <GraduationCap className="w-6 h-6 text-brand-600" />
         </div>
 
         <h1 className="text-2xl font-extrabold text-center mb-1">Nouveau mot de passe</h1>
@@ -86,7 +86,7 @@ export default function ResetPasswordPage() {
             </p>
             <Link
               to="/connexion"
-              className="inline-block w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg"
+              className="inline-block w-full bg-gradient-to-r from-brand-600 to-accent-500 hover:from-brand-700 hover:to-accent-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg"
             >
               Retour à la connexion
             </Link>
@@ -99,7 +99,7 @@ export default function ResetPasswordPage() {
             <button
               type="button"
               onClick={() => navigate("/connexion")}
-              className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg"
+              className="w-full bg-gradient-to-r from-brand-600 to-accent-500 hover:from-brand-700 hover:to-accent-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg"
             >
               Se connecter
             </button>
@@ -114,7 +114,7 @@ export default function ResetPasswordPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-500 hover:from-violet-700 hover:to-fuchsia-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
+              className="w-full bg-gradient-to-r from-brand-600 to-accent-500 hover:from-brand-700 hover:to-accent-600 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-60"
             >
               {submitting ? "Enregistrement..." : "Réinitialiser le mot de passe"}
             </button>
@@ -123,7 +123,7 @@ export default function ResetPasswordPage() {
 
         <p className="text-sm text-slate-500 text-center mt-6">
           Vous vous souvenez de votre mot de passe ?{" "}
-          <Link to="/connexion" className="text-violet-600 font-semibold hover:underline">
+          <Link to="/connexion" className="text-brand-600 font-semibold hover:underline">
             Se connecter
           </Link>
         </p>
