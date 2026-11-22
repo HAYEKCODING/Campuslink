@@ -99,16 +99,8 @@ public class AuthServiceImpl implements AuthService {
         User savedUser = userRepository.save(user);
         log.info("Nouveau compte créé : {}", EmailMasker.mask(savedUser.getEmail()));
 
-        // generateAndSend() est annotée REQUIRES_NEW côté OtpServiceImpl : un échec
-        // d'envoi d'email (SMTP injoignable, etc.) tourne dans sa propre transaction
-        // et ne peut donc pas marquer CETTE transaction (création du compte) comme
-        // rollback-only. On journalise sans jamais faire échouer l'inscription.
-        try {
-            otpService.generateAndSend(savedUser.getEmail(), OtpType.EMAIL_VERIFICATION);
-        } catch (Exception ex) {
-            log.warn("Échec de l'envoi de l'email de vérification pour {} : {}",
-                    EmailMasker.mask(savedUser.getEmail()), ex.getMessage());
-        }
+        // Le code OTP est créé dans cette transaction; seul l'envoi SMTP est asynchrone.
+        otpService.generateAndSend(savedUser.getEmail(), OtpType.EMAIL_VERIFICATION);
 
         return userMapper.toUserResponse(savedUser);
     }

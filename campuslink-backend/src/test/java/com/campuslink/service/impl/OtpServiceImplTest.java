@@ -75,7 +75,7 @@ class OtpServiceImplTest {
 
             // ...mais rien n'est réellement créé ni envoyé (anti-énumération).
             verify(otpCodeRepository, never()).save(any());
-            verify(emailService, never()).sendOtpCode(any(), anyString(), any(), anyInt());
+            verify(emailService, never()).sendOtpCode(anyString(), anyString(), anyString(), any(), anyInt());
         }
 
         @Test
@@ -95,7 +95,8 @@ class OtpServiceImplTest {
 
             verify(otpCodeRepository).deleteByUserAndTypeAndUsedFalse(user, OtpType.EMAIL_VERIFICATION);
             verify(otpCodeRepository).save(any(OtpCode.class));
-            verify(emailService).sendOtpCode(eq(user), anyString(), eq(OtpType.EMAIL_VERIFICATION), eq(10));
+            verify(emailService).sendOtpCode(
+                    eq(EMAIL), eq(EMAIL), anyString(), eq(OtpType.EMAIL_VERIFICATION), eq(10));
         }
 
         @Test
@@ -120,7 +121,7 @@ class OtpServiceImplTest {
                     .isInstanceOf(TooManyRequestsException.class);
 
             verify(otpCodeRepository, never()).save(any());
-            verify(emailService, never()).sendOtpCode(any(), anyString(), any(), anyInt());
+            verify(emailService, never()).sendOtpCode(anyString(), anyString(), anyString(), any(), anyInt());
         }
     }
 

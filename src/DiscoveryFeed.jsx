@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight, UserPlus } from "lucide-react";
+import { ChevronRight, UserCheck, UserPlus } from "lucide-react";
 import Layout from "./Layout";
 import { useAsyncData } from "./hooks/useAsyncData";
 import { getDiscoveryProfiles, subscribeToProfile } from "./services/profileService";
@@ -14,7 +14,9 @@ import { LoadingState, EmptyState, ErrorState } from "./components/ui/AsyncState
  * route dédiée, on évite donc une seconde requête identique.
  */
 
-function ProfileCard({ id, name, university, faculty, interests = [], photo, onSubscribe, returnTo }) {
+function ProfileCard({
+  id, name, university, faculty, interests = [], photo, onSubscribe, subscribed, subscribing, returnTo,
+}) {
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
       <Link to={`/app/profil/${id}`} state={{ from: returnTo }} className="block">
@@ -47,11 +49,13 @@ function ProfileCard({ id, name, university, faculty, interests = [], photo, onS
         <button
           type="button"
           onClick={onSubscribe}
-          aria-label={`S'abonner au profil de ${name || "ce membre"}`}
-          title="S'abonner"
-          className="w-9 h-9 rounded-full bg-brand-50 text-brand-600 shadow-sm flex items-center justify-center hover:bg-brand-100 transition-colors flex-shrink-0"
+          disabled={subscribed || subscribing}
+          aria-label={subscribed ? `Abonné au profil de ${name || "ce membre"}` : `S'abonner au profil de ${name || "ce membre"}`}
+          aria-pressed={subscribed}
+          title={subscribed ? "Abonné" : subscribing ? "Abonnement..." : "S'abonner"}
+          className="w-9 h-9 rounded-full bg-brand-50 text-brand-600 shadow-sm flex items-center justify-center hover:bg-brand-100 transition-colors flex-shrink-0 disabled:opacity-70 disabled:cursor-default"
         >
-          <UserPlus className="w-4 h-4" />
+          {subscribed ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
         </button>
       </div>
     </div>
@@ -64,13 +68,27 @@ export default function DiscoveryFeed() {
   const { data: profiles, loading, error, reload } = useAsyncData(() => getDiscoveryProfiles(), []);
   const [subscribeNotice, setSubscribeNotice] = React.useState("");
   const [subscribeError, setSubscribeError] = React.useState("");
+  const [subscribedProfiles, setSubscribedProfiles] = React.useState(() => new Set());
+  const [subscribingProfiles, setSubscribingProfiles] = React.useState(() => new Set());
 
   const handleSubscribe = (profile) => {
+    if (subscribedProfiles.has(profile.id) || subscribingProfiles.has(profile.id)) return;
     setSubscribeNotice("");
     setSubscribeError("");
+    setSubscribingProfiles((current) => new Set(current).add(profile.id));
     subscribeToProfile(profile.legacyId)
-      .then(() => setSubscribeNotice(`Vous êtes maintenant abonné au profil de ${profile.name || "ce membre"}.`))
-      .catch((err) => setSubscribeError(err.message || "Impossible d'enregistrer votre abonnement."));
+      .then(() => {
+        setSubscribedProfiles((current) => new Set(current).add(profile.id));
+        setSubscribeNotice(`Vous êtes maintenant abonné au profil de ${profile.name || "ce membre"}.`);
+      })
+      .catch((err) => setSubscribeError(err.message || "Impossible d'enregistrer votre abonnement."))
+      .finally(() => {
+        setSubscribingProfiles((current) => {
+          const next = new Set(current);
+          next.delete(profile.id);
+          return next;
+        });
+      });
   };
 
   const newMembers = profiles ? profiles.slice(0, 8) : null;
@@ -95,7 +113,14 @@ export default function DiscoveryFeed() {
         {!loading && !error && profiles && profiles.length > 0 && (
           <div className="grid md:grid-cols-3 gap-5 mb-8">
             {profiles.map((profile) => (
-              <ProfileCard key={profile.id} {...profile} onSubscribe={() => handleSubscribe(profile)} returnTo={returnTo} />
+              <ProfileCard
+                key={profile.id}
+                {...profile}
+                onSubscribe={() => handleSubscribe(profile)}
+                subscribed={subscribedProfiles.has(profile.id)}
+                subscribing={subscribingProfiles.has(profile.id)}
+                returnTo={returnTo}
+              />
             ))}
           </div>
         )}

@@ -75,7 +75,7 @@ export default function CampusLinkSignup() {
     if (!fullName.trim()) errors.fullName = "Le nom complet est obligatoire.";
     if (!firstName.trim()) errors.firstName = "Le prénom est obligatoire.";
 
-    if (!email.trim()) errors.email = "L'email universitaire est obligatoire.";
+    if (!email.trim()) errors.email = "L'email est obligatoire.";
     else if (!EMAIL_REGEX.test(email.trim())) errors.email = "L'adresse email n'est pas valide.";
 
     if (!phone.trim()) errors.phone = "Le numéro de téléphone est obligatoire.";
@@ -222,7 +222,7 @@ export default function CampusLinkSignup() {
           />
           <InputField
             icon={Mail}
-            placeholder="Email universitaire"
+            placeholder="Email"
             type="email"
             value={email}
             onChange={setEmail}

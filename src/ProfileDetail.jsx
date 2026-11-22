@@ -5,6 +5,7 @@ import {
   GraduationCap,
   MapPin,
   UserPlus,
+  UserCheck,
   MessageCircle,
   Pencil,
 } from "lucide-react";
@@ -35,6 +36,8 @@ export default function ProfileDetail() {
   const isSelf = SELF_IDS.includes(id);
   const [subscribeNotice, setSubscribeNotice] = useState("");
   const [subscribeError, setSubscribeError] = useState("");
+  const [subscribed, setSubscribed] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
   const returnTo = location.state?.from;
   const goBack = () => {
     if (typeof returnTo === "string" && returnTo.startsWith("/") && !returnTo.startsWith("//")) {
@@ -57,11 +60,17 @@ export default function ProfileDetail() {
     : null;
 
   const handleSubscribe = () => {
+    if (subscribed || subscribing) return;
     setSubscribeNotice("");
     setSubscribeError("");
+    setSubscribing(true);
     subscribeToProfile(profile?.legacyId)
-      .then(() => setSubscribeNotice(`Vous êtes maintenant abonné au profil de ${profile?.name || "ce membre"}.`))
-      .catch((err) => setSubscribeError(err.message || "Impossible d'enregistrer votre abonnement."));
+      .then(() => {
+        setSubscribed(true);
+        setSubscribeNotice(`Vous êtes maintenant abonné au profil de ${profile?.name || "ce membre"}.`);
+      })
+      .catch((err) => setSubscribeError(err.message || "Impossible d'enregistrer votre abonnement."))
+      .finally(() => setSubscribing(false));
   };
 
   if (loading) {
@@ -172,10 +181,12 @@ export default function ProfileDetail() {
               <div className="flex gap-3">
                 <button
                   onClick={handleSubscribe}
-                  className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 transition-colors text-white text-sm font-semibold py-3 rounded-lg"
+                  disabled={subscribed || subscribing}
+                  aria-pressed={subscribed}
+                  className="flex-1 flex items-center justify-center gap-2 bg-brand-600 hover:bg-brand-700 transition-colors text-white text-sm font-semibold py-3 rounded-lg disabled:opacity-70 disabled:cursor-default"
                 >
-                  <UserPlus className="w-4 h-4" />
-                  S'abonner
+                  {subscribed ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
+                  {subscribed ? "Abonné" : subscribing ? "Abonnement..." : "S'abonner"}
                 </button>
                 <button
                   onClick={() => contact && navigate(`/app/messages/${contact.id}`, {

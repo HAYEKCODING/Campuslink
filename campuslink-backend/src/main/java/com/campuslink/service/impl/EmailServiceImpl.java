@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.MailException;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -52,12 +53,12 @@ public class EmailServiceImpl implements EmailService {
     private boolean logOnly;
 
     @Override
-    public void sendOtpCode(User user, String code, OtpType type, int expirationMinutes) {
-        String recipientName = resolveRecipientName(user);
+    @Async("mailTaskExecutor")
+    public void sendOtpCode(String email, String recipientName, String code, OtpType type, int expirationMinutes) {
         String subject = OtpEmailTemplateBuilder.subjectFor(type);
         String htmlBody = OtpEmailTemplateBuilder.buildHtml(recipientName, code, type, expirationMinutes);
 
-        send(user.getEmail(), subject, htmlBody, "OTP (" + type + ")");
+        send(email, subject, htmlBody, "OTP (" + type + ")");
     }
 
     @Override

@@ -16,8 +16,8 @@ import com.campuslink.util.EmailMasker;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -28,10 +28,9 @@ import java.util.Optional;
 /**
  * Implémentation du module OTP.
  *
- * <p>{@link #generateAndSend} est annotée {@link Propagation#REQUIRES_NEW} : elle
- * peut être appelée depuis une transaction déjà en cours (ex. {@code AuthServiceImpl.register})
- * sans qu'un échec d'envoi d'email ne marque cette transaction englobante comme
- * "rollback-only". Voir le commentaire détaillé sur la méthode.</p>
+ * <p>La création du code OTP partage la transaction appelante afin que le code
+ * d'inscription soit rattaché à un utilisateur déjà persistant. L'envoi SMTP
+ * est ensuite effectué en arrière-plan par le service d'email.</p>
  */
 @Slf4j
 @Service
@@ -46,7 +45,7 @@ public class OtpServiceImpl implements OtpService {
     private final OtpProperties otpProperties;
 
     @Override
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     public OtpResponse generateAndSend(String rawEmail, OtpType type) {
         String email = rawEmail.trim().toLowerCase();
 
@@ -83,9 +82,13 @@ public class OtpServiceImpl implements OtpService {
                 .build();
         otpCodeRepository.save(otpCode);
 
-        emailService.sendOtpCode(user, code, type, (int) otpProperties.getExpirationMinutes());
+        String recipientName = user.getProfile() != null && StringUtils.hasText(user.getProfile().getFirstName())
+                ? user.getProfile().getFirstName()
+                : email;
+        emailService.sendOtpCode(email, recipientName, code, type,
+                (int) otpProperties.getExpirationMinutes());
 
-        log.info("Code OTP ({}) généré et envoyé pour {}", type, EmailMasker.mask(email));
+        log.info("Code OTP ({}) généré et email mis en file pour {}", type, EmailMasker.mask(email));
 
         return OtpResponse.builder()
                 .email(EmailMasker.mask(email))

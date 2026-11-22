@@ -2,6 +2,7 @@ package com.campuslink;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableAsync;
 
 /**
  * Point d'entrée principal de l'application CampusLink.
@@ -10,6 +11,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * de campus (utilisateurs, ressources académiques, communications, etc.).</p>
  */
 @SpringBootApplication
+@EnableAsync
 public class CampusLinkApplication {
 
     public static void main(String[] args) {

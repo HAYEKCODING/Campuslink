@@ -14,12 +14,10 @@ import com.campuslink.enums.OtpType;
 public interface EmailService {
 
     /**
-     * Envoie un email contenant un code OTP en clair à l'utilisateur.
-     *
-     * @throws com.campuslink.exception.EmailDeliveryException si l'envoi échoue
-     *         (serveur SMTP injoignable, etc.)
+     * Envoie en arrière-plan un email contenant un code OTP en clair à l'utilisateur.
+     * Les erreurs d'envoi sont journalisées par le service d'email.
      */
-    void sendOtpCode(User user, String code, OtpType type, int expirationMinutes);
+    void sendOtpCode(String email, String recipientName, String code, OtpType type, int expirationMinutes);
 
     /**
      * Envoie un email contenant un lien de réinitialisation de mot de passe.

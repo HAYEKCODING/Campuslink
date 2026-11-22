@@ -147,7 +147,7 @@ class AuthServiceImplTest {
         }
 
         @Test
-        void shouldNotFail_whenOtpEmailSendingThrows() {
+        void shouldPropagateOtpSchedulingFailure_insteadOfReportingSuccessfulRegistration() {
             RegisterRequest request = RegisterRequest.builder()
                     .email("nouveau@campuslink.io")
                     .password("Secret123")
@@ -162,15 +162,12 @@ class AuthServiceImplTest {
             when(roleRepository.findByName(RoleName.STUDENT)).thenReturn(Optional.of(studentRole));
             when(passwordEncoder.encode("Secret123")).thenReturn("hashed-password");
             when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
-            when(userMapper.toUserResponse(any(User.class)))
-                    .thenReturn(UserResponse.builder().email("nouveau@campuslink.io").build());
             when(otpService.generateAndSend(any(), any()))
-                    .thenThrow(new RuntimeException("SMTP indisponible"));
+                    .thenThrow(new RuntimeException("File d'email indisponible"));
 
-            // L'inscription doit réussir malgré l'échec d'envoi de l'email de vérification.
-            UserResponse response = authService.register(request);
-
-            assertThat(response.getEmail()).isEqualTo("nouveau@campuslink.io");
+            assertThatThrownBy(() -> authService.register(request))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessage("File d'email indisponible");
         }
 
         @Nested

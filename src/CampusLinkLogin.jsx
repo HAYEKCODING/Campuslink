@@ -132,7 +132,7 @@ export default function CampusLinkLogin() {
         <p className="text-sm text-slate-400 text-center mb-8">Bienvenue de retour !</p>
 
         <form className="space-y-4" onSubmit={handleSubmit}>
-          <InputField icon={Mail} placeholder="Email universitaire" type="email" value={email} onChange={setEmail} />
+          <InputField icon={Mail} placeholder="Email" type="email" value={email} onChange={setEmail} />
           <InputField icon={Lock} placeholder="Mot de passe" toggle value={password} onChange={setPassword} />
 
           <div className="flex items-center justify-between text-sm">
