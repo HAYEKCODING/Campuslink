@@ -47,6 +47,15 @@ export async function getDiscoveryProfiles() {
   return getPageContent("/profiles/search");
 }
 
+/**
+ * Identifiants legacy des profils auxquels l'utilisateur est déjà abonné.
+ * Le backend conserve encore la route historique `/likes`.
+ */
+export async function getSubscribedProfileIds() {
+  const subscriptions = await api.get("/likes");
+  return new Set(subscriptions.map(({ cibleId }) => cibleId));
+}
+
 export function getProfileById(id) {
   return api.get(`/profiles/${encodeURIComponent(id)}/public`).then(normalizeProfile);
 }

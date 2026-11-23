@@ -1,9 +1,13 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { ChevronRight, UserCheck, UserPlus } from "lucide-react";
+import { ChevronRight, UserPlus } from "lucide-react";
 import Layout from "./Layout";
 import { useAsyncData } from "./hooks/useAsyncData";
-import { getDiscoveryProfiles, subscribeToProfile } from "./services/profileService";
+import {
+  getDiscoveryProfiles,
+  getSubscribedProfileIds,
+  subscribeToProfile,
+} from "./services/profileService";
 import { LoadingState, EmptyState, ErrorState } from "./components/ui/AsyncStates";
 
 /**
@@ -46,17 +50,25 @@ function ProfileCard({
             </span>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={onSubscribe}
-          disabled={subscribed || subscribing}
-          aria-label={subscribed ? `Abonné au profil de ${name || "ce membre"}` : `S'abonner au profil de ${name || "ce membre"}`}
-          aria-pressed={subscribed}
-          title={subscribed ? "Abonné" : subscribing ? "Abonnement..." : "S'abonner"}
-          className="w-9 h-9 rounded-full bg-brand-50 text-brand-600 shadow-sm flex items-center justify-center hover:bg-brand-100 transition-colors flex-shrink-0 disabled:opacity-70 disabled:cursor-default"
-        >
-          {subscribed ? <UserCheck className="w-4 h-4" /> : <UserPlus className="w-4 h-4" />}
-        </button>
+        {subscribed ? (
+          <span
+            aria-label={`Déjà abonné au profil de ${name || "ce membre"}`}
+            className="text-xs font-semibold text-emerald-600 flex-shrink-0"
+          >
+            Abonné
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={onSubscribe}
+            disabled={subscribing}
+            aria-label={`S'abonner au profil de ${name || "ce membre"}`}
+            title={subscribing ? "Abonnement..." : "S'abonner"}
+            className="w-9 h-9 rounded-full bg-brand-50 text-brand-600 shadow-sm flex items-center justify-center hover:bg-brand-100 transition-colors flex-shrink-0 disabled:opacity-70 disabled:cursor-default"
+          >
+            <UserPlus className="w-4 h-4" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -65,27 +77,41 @@ function ProfileCard({
 export default function DiscoveryFeed() {
   const location = useLocation();
   const returnTo = `${location.pathname}${location.search}${location.hash}`;
-  const { data: profiles, loading, error, reload } = useAsyncData(() => getDiscoveryProfiles(), []);
+  const { data, loading, error, reload } = useAsyncData(
+    async () => {
+      const [profiles, subscribedProfileIds] = await Promise.all([
+        getDiscoveryProfiles(),
+        getSubscribedProfileIds(),
+      ]);
+      return { profiles, subscribedProfileIds };
+    },
+    []
+  );
+  const profiles = data?.profiles;
   const [subscribeNotice, setSubscribeNotice] = React.useState("");
   const [subscribeError, setSubscribeError] = React.useState("");
   const [subscribedProfiles, setSubscribedProfiles] = React.useState(() => new Set());
   const [subscribingProfiles, setSubscribingProfiles] = React.useState(() => new Set());
 
   const handleSubscribe = (profile) => {
-    if (subscribedProfiles.has(profile.id) || subscribingProfiles.has(profile.id)) return;
+    if (
+      data?.subscribedProfileIds.has(profile.legacyId) ||
+      subscribedProfiles.has(profile.legacyId) ||
+      subscribingProfiles.has(profile.legacyId)
+    ) return;
     setSubscribeNotice("");
     setSubscribeError("");
-    setSubscribingProfiles((current) => new Set(current).add(profile.id));
+    setSubscribingProfiles((current) => new Set(current).add(profile.legacyId));
     subscribeToProfile(profile.legacyId)
       .then(() => {
-        setSubscribedProfiles((current) => new Set(current).add(profile.id));
+        setSubscribedProfiles((current) => new Set(current).add(profile.legacyId));
         setSubscribeNotice(`Vous êtes maintenant abonné au profil de ${profile.name || "ce membre"}.`);
       })
       .catch((err) => setSubscribeError(err.message || "Impossible d'enregistrer votre abonnement."))
       .finally(() => {
         setSubscribingProfiles((current) => {
           const next = new Set(current);
-          next.delete(profile.id);
+          next.delete(profile.legacyId);
           return next;
         });
       });
@@ -117,8 +143,11 @@ export default function DiscoveryFeed() {
                 key={profile.id}
                 {...profile}
                 onSubscribe={() => handleSubscribe(profile)}
-                subscribed={subscribedProfiles.has(profile.id)}
-                subscribing={subscribingProfiles.has(profile.id)}
+                subscribed={
+                  data.subscribedProfileIds.has(profile.legacyId) ||
+                  subscribedProfiles.has(profile.legacyId)
+                }
+                subscribing={subscribingProfiles.has(profile.legacyId)}
                 returnTo={returnTo}
               />
             ))}
